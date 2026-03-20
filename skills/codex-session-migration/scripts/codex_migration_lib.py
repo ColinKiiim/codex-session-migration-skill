@@ -293,6 +293,17 @@ def build_catalog(home: Path, include_archived: bool = False, include_sqlite: bo
                 record["cwd"] = row.get("cwd")
             if not record.get("title"):
                 record["title"] = row.get("title")
+            if bool(row.get("archived")):
+                session_path = record.get("session_path")
+                if not session_path and row.get("rollout_path"):
+                    record["session_path"] = row.get("rollout_path")
+                    record["archived"] = True
+                elif session_path:
+                    try:
+                        Path(session_path).relative_to(home / "archived_sessions")
+                        record["archived"] = True
+                    except ValueError:
+                        pass
     return records
 
 
