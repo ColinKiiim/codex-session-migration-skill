@@ -72,6 +72,21 @@ python scripts/rewrite_cwd.py --home "<target-codex-home>" --spec rebind-spec.js
 python scripts/sync_sqlite_threads.py --home "<target-codex-home>" --spec rebind-spec.json --thread-id "<thread-id>" --execute
 ```
 
+## Copy vs. Migrate Inside One CODEX_HOME
+
+When both the source and target workspace paths live inside the same `CODEX_HOME`, distinguish between these two intents:
+
+- `copy`: keep the source thread active and create another active thread under the new workspace path.
+- `migrate`: create the new target thread first, verify it, then archive the source thread so it leaves the active list but remains recoverable in Codex's archive UI.
+
+Do not archive the source thread until the new target thread has been written and verified.
+
+After a successful same-home migrate, archive the old source thread with:
+
+```bash
+python scripts/archive_thread.py --home "<codex-home>" --thread-id "<source-thread-id>" --execute
+```
+
 ## Bundle Transfer Workflow
 
 Use the bundle workflow when you need to move one thread between different machines or hosts.
@@ -188,6 +203,7 @@ python scripts/generate_cleanup_prompt.py --thread-id "<thread-id>" --target-cwd
 - Treat `state_5.sqlite` synchronization as required for desktop visibility unless inspection proves otherwise.
 - For cross-device transfer, prefer generating the target import prompt on the source machine and the cleanup prompt on the target machine.
 - Do not delete rollback-capable backups automatically unless the user explicitly asks for aggressive cleanup.
+- For same-home relocation, default to `keep-source` for copy and `archive-source` for migrate unless the user explicitly asks for a different retirement policy.
 
 ## References
 
@@ -220,5 +236,6 @@ Open only what is needed:
 - `scripts/build_transfer_package.py`
 - `scripts/generate_target_import_prompt.py`
 - `scripts/generate_cleanup_prompt.py`
+- `scripts/archive_thread.py`
 
 Use the scripts instead of rewriting migration logic in the prompt.

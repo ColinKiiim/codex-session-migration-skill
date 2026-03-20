@@ -44,6 +44,7 @@ Updated: 2026-03-20
 - checksum failure on a tampered bundle
 - workspace-path rebinding and SQLite synchronization
 - recovery from workspace rename and path drift on Windows
+- same-home migrate with source-thread archive on Windows
 
 ## Not Yet Verified
 
@@ -56,6 +57,18 @@ This repository intentionally avoids stronger claims than the evidence supports.
 
 - Cross-device bundle transfer is described as verified only for `win -> win`, `win -> mac`, and `mac -> win`.
 - Direct migration and rebind scripts are broader than the bundle validation matrix, but the docs do not overclaim untested host pairings.
+
+## Same-Home Retirement Policy
+
+### English
+
+- Verified behavior on Windows: after a successful same-home migrate, the new target thread can stay active while the old source thread is archived and recoverable from Codex's archive UI.
+- Recommended default policy: `copy -> keep-source`, `migrate -> archive-source`.
+
+### 中文
+
+- 已验证的 Windows 行为：同一 `CODEX_HOME` 内迁移成功后，新的目标线程可以保持活跃，而旧的源线程会被归档，并且仍可在 Codex 的归档界面中恢复。
+- 建议的默认策略：`copy -> keep-source`，`migrate -> archive-source`。
 
 ## 中文
 

@@ -14,6 +14,7 @@ It supports more than moving threads across different `CODEX_HOME` directories. 
 - repairing threads that disappear after a workspace folder is renamed or moved
 - single-thread bundle export and import for cross-device transfer
 - source-side handoff prompt generation and target-side cleanup prompt generation
+- same-home migrate with source-thread archiving after the new target thread is verified
 
 The installable skill lives at:
 
@@ -47,6 +48,18 @@ Recommended reading order:
 This repository is ready for GitHub repo/path installation.
 
 That does not automatically mean it will appear in Codex's built-in searchable skill catalog. A public GitHub repository is the right foundation, but searchable catalog installation usually also requires inclusion in a supported catalog source.
+
+## Migration Retirement Behavior
+
+### English
+
+- `copy` keeps the source thread active and creates a second active thread at the new workspace path.
+- `migrate` creates the new target thread first, verifies it, and then archives the old source thread instead of leaving two active copies behind.
+
+### 中文
+
+- `copy` 会保留源线程为活跃状态，同时在新的工作目录下创建第二个活跃线程。
+- `migrate` 会先创建并验证新的目标线程，然后把旧的源线程归档，而不是在主列表里保留两个活跃副本。
 
 ## 中文
 
