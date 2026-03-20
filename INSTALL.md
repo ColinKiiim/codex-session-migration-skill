@@ -42,6 +42,7 @@ Then restart Codex.
 
 - Repository-level docs are for humans.
 - The installable skill remains clean and self-contained inside `skills/codex-session-migration/`.
+- On some Windows machines, direct GitHub installation may require a real Python interpreter and a working HTTPS certificate chain. See [MANUAL.md](MANUAL.md) for the recommended prompt and fallback flow.
 
 ## 中文
 
@@ -83,3 +84,4 @@ Then restart Codex.
 
 - 仓库根目录里的文档主要面向人类读者。
 - 真正可安装的 skill 保持在 `skills/codex-session-migration/` 中，尽量保持简洁和自包含。
+- 在某些 Windows 环境下，直接从 GitHub 安装可能需要一个真实可用的 Python 解释器和正常的 HTTPS 证书链。更推荐的提示词和兜底流程请看 [MANUAL.md](MANUAL.md)。

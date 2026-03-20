@@ -37,7 +37,9 @@ Your task:
 1. Install this skill from the GitHub repo/path above.
 2. After installation, tell me which local path the skill was installed to.
 3. Remind me to restart Codex so the new skill can be loaded.
-4. If installation fails, stop and tell me why instead of guessing another source.
+4. If the first install attempt fails because of a local runtime issue, you may do minimal local environment repair needed to complete the same GitHub install flow. Examples include using a real Python interpreter instead of a broken launcher alias, fixing the certificate path for Python HTTPS requests, or using the installer's git method when appropriate.
+5. Do not switch to a different installation source unless you tell me why first.
+6. If the GitHub install still fails after reasonable local runtime fixes, stop and tell me the failure reason.
 ```
 
 ### Chinese Prompt For Another Computer's Codex
@@ -57,7 +59,10 @@ Send this to the Codex on the target computer if that Codex is operating in a Ch
 1. 从上面的 GitHub repo/path 安装这个 skill。
 2. 安装完成后，告诉我这个 skill 被安装到了本地哪个路径。
 3. 提醒我重启 Codex，以便加载这个新 skill。
-4. 如果安装失败，先停下来告诉我失败原因，不要自己猜测别的来源。
+4. 如果第一次安装失败是因为本机运行环境问题，你可以做“最小必要”的本地环境修复，以继续完成同一个 GitHub 安装流程。
+   例如：改用真实可用的 Python 解释器而不是失效的启动别名、修正 Python HTTPS 请求使用的证书路径、在合适时改用安装器自带的 git 方法。
+5. 不要在没有先告诉我的情况下，擅自改用别的安装来源。
+6. 如果在做了合理的本地环境修复后，GitHub 安装仍然失败，再停止并告诉我失败原因。
 ```
 
 ### Expected Result
@@ -71,6 +76,16 @@ Use this fallback if:
 - the target Codex cannot install directly from GitHub
 - network restrictions prevent repo download
 - the user prefers manual download and copy
+
+### Common Runtime Blockers Before Falling Back
+
+Before switching to manual fallback, it is reasonable to check a few common local blockers on the target machine:
+
+- `python` points to a broken Windows Store alias instead of a real interpreter
+- the available Python cannot validate HTTPS certificates correctly
+- git-based fallback is unavailable because `git` is not installed or not on `PATH`
+
+If one of these issues can be repaired locally without changing the installation source, it is usually better to complete the same GitHub install flow first.
 
 ### What The User Should Download
 
@@ -189,6 +204,16 @@ skill 路径：
 - 目标机器上的 Codex 不能直接从 GitHub 安装
 - 网络限制阻止了仓库下载
 - 用户更希望手动下载和复制
+
+### 切换到手动安装前，值得先检查的常见运行环境问题
+
+在转去手动兜底之前，目标机器上常见、而且值得先排查的本地阻塞包括：
+
+- `python` 指向了失效的 Windows Store 别名，而不是真正可用的解释器
+- 本机可用的 Python 无法正确校验 HTTPS 证书
+- 想走 git 兜底时，系统里没有可用的 `git`，或者 `git` 不在 `PATH` 中
+
+如果这些问题可以在不改变安装来源的前提下通过本地修复解决，通常更建议先完成同一个 GitHub 安装流程。
 
 ### 用户需要下载什么
 
