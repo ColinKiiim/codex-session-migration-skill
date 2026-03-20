@@ -1,0 +1,28 @@
+{
+  "source_home": "C:\\source-codex-home",
+  "target_home": "C:\\target-codex-home",
+  "mode": "copy-selected",
+  "include_archived": false,
+  "thread_ids": [
+    "01900000-0000-7000-8000-000000000000"
+  ],
+  "path_rules": [
+    {
+      "type": "prefix",
+      "from": "/mnt/f/projects/",
+      "to": "F:\\projects\\"
+    },
+    {
+      "type": "prefix",
+      "from": "/home/example/",
+      "to": "\\\\wsl.localhost\\Ubuntu\\home\\example\\"
+    },
+    {
+      "type": "exact",
+      "from": "F:\\projects\\nested\\child",
+      "to": "F:\\projects\\nested"
+    }
+  ],
+  "update_sqlite": true,
+  "backup_label": "example-run"
+}

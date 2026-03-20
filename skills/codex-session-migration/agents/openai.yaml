@@ -1,0 +1,6 @@
+interface:
+  display_name: "Codex Session Migration"
+  short_description: "Move or rebind Codex threads across homes safely"
+  default_prompt: "Use $codex-session-migration to plan and verify moving Codex threads between two CODEX_HOME directories."
+policy:
+  allow_implicit_invocation: true
