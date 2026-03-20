@@ -2,31 +2,14 @@
 
 ## GitHub Repo/Path Install
 
-This repository is laid out so the skill can be installed from:
+This repository is structured so the skill can be installed from:
 
-- repo: `<owner>/<repo>`
+- repo: `ColinKiiim/codex-session-migration-skill`
 - path: `skills/codex-session-migration`
 
-Using Codex's GitHub-based skill installer flow, the equivalent install target is:
+The actual installable skill is only this folder:
 
-```text
-skills/codex-session-migration
-```
-
-## Resulting Local Layout
-
-After installation, the target machine should have:
-
-```text
-<CODEX_HOME>
-  skills/
-    codex-session-migration/
-      SKILL.md
-      agents/
-      assets/
-      references/
-      scripts/
-```
+- `skills/codex-session-migration`
 
 ## Typical `CODEX_HOME`
 
@@ -36,14 +19,22 @@ After installation, the target machine should have:
 
 ## Manual Fallback Install
 
-If needed, the skill folder can still be copied manually:
+If GitHub-based install is unavailable, copy this folder:
 
-1. Copy `skills/codex-session-migration/`
-2. Paste it into `<CODEX_HOME>/skills/`
-3. Restart Codex
+- `skills/codex-session-migration`
+
+into:
+
+- `<CODEX_HOME>/skills/`
+
+Then restart Codex.
+
+## Recommended Reading Order
+
+1. [MANUAL.md](MANUAL.md)
+2. [VALIDATION.md](VALIDATION.md)
 
 ## Notes
 
-- The repository root docs are for humans.
-- The actual installable skill is only the folder at `skills/codex-session-migration/`.
-- For cross-device transfer, unknown target-machine paths should remain placeholders until the user provides real values.
+- Repository-level docs are for humans.
+- The installable skill remains clean and self-contained inside `skills/codex-session-migration/`.
