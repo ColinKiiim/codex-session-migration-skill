@@ -1,62 +1,29 @@
 # Codex Session Migration
 
+Chinese version below.
+
+## English
+
 If you want to install this skill, open [MANUAL.md](MANUAL.md) first.
 
-如果你想安装这个 skill，请先打开 [MANUAL.md](MANUAL.md)。
-
-## 中文简介
-
-这是一个用于 Codex 对话历史迁移与重绑的 skill 仓库。
-
-它不只支持不同 `CODEX_HOME` 目录之间的迁移，也支持：
-
-- 同一台机器、同一个 `CODEX_HOME` 内，把线程重绑到新的工作目录
-- 工作区文件夹改名、移动后，把“消失”的线程重新挂回正确路径
-- 跨设备单线程 bundle 导出 / 导入
-- 源机器生成导入 prompt，目标机器成功导入后再生成清理 prompt
-
-仓库里的可安装 skill 位于：
-
-- `skills/codex-session-migration`
-
-如果你是第一次使用这个仓库，请直接看：
-
-- [MANUAL.md](MANUAL.md)
-
-如果你想了解安装方式，请看：
-
-- [INSTALL.md](INSTALL.md)
-
-如果你想了解当前验证边界，请看：
-
-- [VALIDATION.md](VALIDATION.md)
-
-## English Overview
-
-This repository contains a Codex skill for migrating, rebinding, and transferring Codex conversation history.
+This repository contains a Codex skill for migrating, rebinding, repairing, and transferring Codex conversation history.
 
 It supports more than moving threads across different `CODEX_HOME` directories. It also supports:
 
 - rebinding threads to a new workspace path inside the same `CODEX_HOME`
-- recovering threads that disappear after a workspace folder is renamed or moved
-- single-thread bundle export/import for cross-device transfer
-- source-side import prompt generation and target-side cleanup prompt generation
+- repairing threads that disappear after a workspace folder is renamed or moved
+- single-thread bundle export and import for cross-device transfer
+- source-side handoff prompt generation and target-side cleanup prompt generation
 
 The installable skill lives at:
 
 - `skills/codex-session-migration`
 
-If you are new to this repository, start here:
+Recommended reading order:
 
-- [MANUAL.md](MANUAL.md)
-
-For installation details:
-
-- [INSTALL.md](INSTALL.md)
-
-For the current validation boundary:
-
-- [VALIDATION.md](VALIDATION.md)
+1. [MANUAL.md](MANUAL.md)
+2. [INSTALL.md](INSTALL.md)
+3. [VALIDATION.md](VALIDATION.md)
 
 ## Repository Layout
 
@@ -77,6 +44,52 @@ For the current validation boundary:
 
 ## Current Distribution Position
 
-Today, this repository is ready for GitHub repo/path installation.
+This repository is ready for GitHub repo/path installation.
 
-That does not automatically mean it will appear in Codex's built-in searchable skill catalog. A public GitHub repo is the right foundation, but searchable catalog installation usually also requires inclusion in a supported catalog source.
+That does not automatically mean it will appear in Codex's built-in searchable skill catalog. A public GitHub repository is the right foundation, but searchable catalog installation usually also requires inclusion in a supported catalog source.
+
+## 中文
+
+如果你想安装这个 skill，请先打开 [MANUAL.md](MANUAL.md)。
+
+这个仓库提供了一个用于迁移、重绑、修复和跨设备转移 Codex 对话历史的 skill。
+
+它不只支持不同 `CODEX_HOME` 目录之间的迁移，也支持：
+
+- 在同一个 `CODEX_HOME` 中，把线程重绑到新的工作目录
+- 在工作区文件夹改名或移动后，修复“消失”的线程
+- 面向跨设备转移的单线程 bundle 导出与导入
+- 源机器生成交接 prompt，目标机器在成功导入后生成清理 prompt
+
+可安装的 skill 位于：
+
+- `skills/codex-session-migration`
+
+建议阅读顺序：
+
+1. [MANUAL.md](MANUAL.md)
+2. [INSTALL.md](INSTALL.md)
+3. [VALIDATION.md](VALIDATION.md)
+
+## 仓库结构
+
+```text
+.
+|-- README.md
+|-- MANUAL.md
+|-- INSTALL.md
+|-- VALIDATION.md
+`-- skills/
+    `-- codex-session-migration/
+        |-- SKILL.md
+        |-- agents/
+        |-- assets/
+        |-- references/
+        `-- scripts/
+```
+
+## 当前发布定位
+
+这个仓库已经适合通过 GitHub 的 repo/path 方式安装。
+
+但这并不自动意味着它会出现在 Codex 内置的可搜索技能目录里。公开 GitHub 仓库是正确基础，但想实现“搜索并点加号安装”，通常还需要被纳入 Codex 支持的 catalog 来源。

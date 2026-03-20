@@ -1,13 +1,17 @@
 # Validation
 
+Chinese version below.
+
 Updated: 2026-03-20
+
+## English
 
 ## Verified End-To-End
 
 - `Windows -> Windows`
   - source export
   - transfer as zip
-  - isolated import on second Windows machine
+  - isolated import on a second Windows machine
   - real import into the second machine's `%USERPROFILE%\.codex`
   - verify script success
   - full Codex restart
@@ -37,9 +41,9 @@ Updated: 2026-03-20
 - title-fragment thread resolution
 - inline `Prompt 1` generation on the source machine
 - target-side cleanup prompt generation after a successful import
-- checksum failure on tampered bundle
+- checksum failure on a tampered bundle
 - workspace-path rebinding and SQLite synchronization
-- recovery from workspace rename/path drift on Windows
+- recovery from workspace rename and path drift on Windows
 
 ## Not Yet Verified
 
@@ -52,3 +56,56 @@ This repository intentionally avoids stronger claims than the evidence supports.
 
 - Cross-device bundle transfer is described as verified only for `win -> win`, `win -> mac`, and `mac -> win`.
 - Direct migration and rebind scripts are broader than the bundle validation matrix, but the docs do not overclaim untested host pairings.
+
+## 中文
+
+## 已完成端到端验证
+
+- `Windows -> Windows`
+  - 源端导出
+  - 以 zip 形式转移
+  - 在第二台 Windows 机器上做隔离导入
+  - 真实导入到第二台机器的 `%USERPROFILE%\.codex`
+  - 验证脚本通过
+  - 完整重启 Codex
+  - 在线程目标 Windows Codex UI 中可见
+
+- `Windows -> macOS`
+  - 源端导出
+  - 以 zip 形式转移
+  - 在 macOS 上做隔离导入
+  - 真实导入到目标 `~/.codex`
+  - 验证脚本通过
+  - 完整重启 Codex
+  - 在线程目标 macOS Codex UI 中可见
+
+- `macOS -> Windows`
+  - 源端导出
+  - 以 zip 形式转移
+  - 在 Windows 上做隔离导入
+  - 真实导入到目标 `%USERPROFILE%\.codex`
+  - 验证脚本通过
+  - 完整重启 Codex
+  - 在线程目标 Windows Codex UI 中可见
+
+## 已验证的辅助行为
+
+- 源端一步式 handoff 准备
+- 基于标题片段的线程解析
+- 源机器内联生成 `Prompt 1`
+- 目标机器在成功导入后生成清理 prompt
+- 被篡改 bundle 的校验失败检测
+- 工作区路径重绑与 SQLite 同步
+- Windows 上因工作区改名导致的路径漂移恢复
+
+## 尚未验证
+
+- `macOS -> macOS`
+- 归档线程的跨设备 bundle 转移
+
+## 声明边界
+
+这个仓库会刻意避免做出超过证据范围的更强声明。
+
+- 当前只把 `win -> win`、`win -> mac`、`mac -> win` 描述为“已验证”的跨设备 bundle 转移方向。
+- 直接迁移和重绑脚本的适用范围比 bundle 验证矩阵更广，但文档不会对未测试的主机组合做过度宣称。

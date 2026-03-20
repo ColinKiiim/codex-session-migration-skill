@@ -95,11 +95,11 @@ When you use this skill in a conversation, do these things explicitly:
 9. Do not assume the user will place the transfer zip on the Desktop. If the actual target-machine location is unknown, keep a placeholder and tell the user to replace it with the real path.
 10. Do not phrase guessed values as if they are already true. The target package path and target workspace path must be clearly marked as user-supplied unless they were explicitly provided.
 11. In `Prompt 1`, prefer a readable label-and-value layout for unknown target-side paths:
-   - `1. 测试包路径：`
-   - `<把这里替换成目标Windows电脑上这个 zip 的实际路径>`
-   - `2. 目标工作目录：`
-   - `<把这里替换成目标Windows电脑上的实际工作目录>`
-   Do not wrap unknown placeholder values in misleading prose such as “I will first place the zip...” because that makes the prompt harder to scan.
+   - `1. Package path:`
+   - `<replace this with the real path to the zip on the target computer>`
+   - `2. Target workspace path:`
+   - `<replace this with the real target workspace path on the target computer>`
+   Do not wrap unknown placeholder values in misleading prose such as "I will first place the zip..." because that makes the prompt harder to scan.
 12. When the request is a straightforward source-side cross-device transfer and `scripts/prepare_transfer_handoff.py` is available, call it first. Do not spend extra turns listing the scripts directory, reading script source, or probing obvious paths unless that one-shot command fails.
 
 When the user gives a thread title or fragment rather than a thread id, prefer:
