@@ -24,6 +24,9 @@ Use this matrix when validating the skill.
 - post-success cleanup prompt generation
 - title-fragment thread resolution
 - one-shot source-side handoff preparation
+- session index drift repair
+- sidebar remark-name preservation from an older index backup
+- workspace-scoped `updated_at` promotion
 
 ## Thread States
 
@@ -31,6 +34,8 @@ Use this matrix when validating the skill.
 - archived thread
 - thread with missing index entry
 - thread with missing sqlite row
+- thread with duplicate index entries
+- thread visible in data layers but not visible in the recent sidebar window
 
 ## Path Cases
 

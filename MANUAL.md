@@ -150,6 +150,38 @@ This skill supports:
 - workspace-path repair after folder rename or move
 - bundle-based cross-device transfer
 
+## Sidebar Repair Inside One Existing `CODEX_HOME`
+
+Use this workflow when the user says threads disappeared from the left sidebar but you are still working inside the same machine's real `CODEX_HOME`.
+
+### Confirmed Practical Lessons
+
+- A thread can still exist in `sessions/` and sqlite while being invisible in the sidebar because `session_index.jsonl` is missing the id.
+- `session_index.jsonl -> thread_name` is the sidebar remark label. It may differ from sqlite `threads.title`.
+- If you rebuild the index from sqlite `title` without preserving `thread_name`, you can destroy the user's short sidebar remarks.
+- Some "no threads under this workspace" cases are actually recent-window problems. The thread exists, but its `updated_at` is too old to surface in the current sidebar window.
+- A few malformed JSONL session files should not abort the whole repair. Good repair tooling should report and skip them.
+
+### Recommended Order
+
+1. Inspect the three-layer state.
+2. Dry-run `repair_session_index.py`.
+3. If the user cares about old sidebar remarks and an older index backup exists, pass it as `--name-source-index`.
+4. Execute the repair.
+5. Restart Codex and re-check.
+6. If the workspace group still looks empty, test `bump_workspace_updated_at.py --limit 5`.
+7. Only after a small test works, promote the whole workspace.
+
+### Example Commands
+
+```bash
+python scripts/inspect_codex_home.py --home "~/.codex" --include-archived
+python scripts/repair_session_index.py --home "~/.codex" --include-archived
+python scripts/repair_session_index.py --home "~/.codex" --include-archived --name-source-index "~/.codex/session_index.jsonl.bak-YYYYMMDD-HHMMSS" --execute
+python scripts/bump_workspace_updated_at.py --home "~/.codex" --cwd "/absolute/workspace/path" --limit 5 --execute
+python scripts/bump_workspace_updated_at.py --home "~/.codex" --cwd "/absolute/workspace/path" --execute
+```
+
 ## Validation Boundary
 
 Before using the skill for a critical migration, read:
@@ -239,6 +271,38 @@ skill 路径：
 - 同一个 `CODEX_HOME` 内的只重绑修复
 - 工作区文件夹改名或移动后的路径修复
 - 基于 bundle 的跨设备线程转移
+
+## 同一个 `CODEX_HOME` 内的侧栏修复
+
+如果用户说左侧侧栏里有线程“消失了”，但你仍然是在同一台机器、同一个真实 `CODEX_HOME` 里处理问题，就优先走这个流程。
+
+### 今天已经确认过的实践结论
+
+- 线程可能仍然存在于 `sessions/` 和 sqlite 中，但因为 `session_index.jsonl` 缺少对应 id，所以侧栏看不到。
+- `session_index.jsonl -> thread_name` 才是侧栏备注名，它可能和 sqlite `threads.title` 不一样。
+- 如果你直接用 sqlite `title` 重建 index，而不保留 `thread_name`，就可能把用户原来的短备注名全部覆盖掉。
+- 有些“这个工作区下面没有线程”其实是 recent-thread 窗口问题：线程还在，但 `updated_at` 太旧，暂时不显示。
+- 少量损坏的 JSONL session 文件不应该让整个修复流程中断。好的修复脚本应该把它们报告出来并跳过。
+
+### 建议顺序
+
+1. 先检查三层状态。
+2. 先 dry-run `repair_session_index.py`。
+3. 如果用户在乎旧的侧栏备注名，而且存在较早的 index 备份，就通过 `--name-source-index` 指定它。
+4. 再执行 index 修复。
+5. 重启 Codex 后重新检查。
+6. 如果工作区分组看起来仍然是空的，再先用 `bump_workspace_updated_at.py --limit 5` 做一个小范围测试。
+7. 只有小测试成功后，再提升整个工作区。
+
+### 示例命令
+
+```bash
+python scripts/inspect_codex_home.py --home "~/.codex" --include-archived
+python scripts/repair_session_index.py --home "~/.codex" --include-archived
+python scripts/repair_session_index.py --home "~/.codex" --include-archived --name-source-index "~/.codex/session_index.jsonl.bak-YYYYMMDD-HHMMSS" --execute
+python scripts/bump_workspace_updated_at.py --home "~/.codex" --cwd "/absolute/workspace/path" --limit 5 --execute
+python scripts/bump_workspace_updated_at.py --home "~/.codex" --cwd "/absolute/workspace/path" --execute
+```
 
 ## 验证边界
 

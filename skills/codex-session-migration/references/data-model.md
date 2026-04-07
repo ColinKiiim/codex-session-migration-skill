@@ -42,6 +42,11 @@ Important fields:
 - `thread_name`
 - `updated_at`
 
+Practical note:
+
+- `thread_name` is the safest source of the sidebar remark label.
+- sqlite `threads.title` may be a different value, often longer and less user-friendly.
+
 ### 3. SQLite cache
 
 `state_5.sqlite` often contains a `threads` table used by the app for thread metadata and grouping.
@@ -57,6 +62,11 @@ Important columns:
 - `source`
 - `cli_version`
 - `first_user_message`
+
+Practical note:
+
+- `updated_at` in sqlite can affect whether a workspace still appears to have recent threads in the desktop sidebar.
+- if sqlite and index both contain the thread but the workspace still looks empty, recency-window behavior is a plausible explanation.
 
 ## Practical Consequence
 

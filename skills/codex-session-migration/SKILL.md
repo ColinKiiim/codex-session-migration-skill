@@ -72,6 +72,35 @@ python scripts/rewrite_cwd.py --home "<target-codex-home>" --spec rebind-spec.js
 python scripts/sync_sqlite_threads.py --home "<target-codex-home>" --spec rebind-spec.json --thread-id "<thread-id>" --execute
 ```
 
+## Sidebar Recovery Workflow
+
+Use this when the user says threads disappeared from the left sidebar inside one existing `CODEX_HOME`.
+
+1. Inspect the three layers first.
+2. Repair `session_index.jsonl` if ids are missing or duplicated.
+3. Preserve sidebar remark names from an older index backup if needed.
+4. Restart Codex and re-check.
+5. If the workspace group still looks empty even though the thread exists in all three layers, test a metadata-only `updated_at` bump for only the newest few matching threads first.
+
+Dry-run and then execute index repair:
+
+```bash
+python scripts/repair_session_index.py --home "<codex-home>" --include-archived
+python scripts/repair_session_index.py --home "<codex-home>" --include-archived --name-source-index "<older-index-backup>" --execute
+```
+
+Test a small recency bump first:
+
+```bash
+python scripts/bump_workspace_updated_at.py --home "<codex-home>" --cwd "<workspace-cwd>" --limit 5 --execute
+```
+
+Then promote the whole workspace if the small test works:
+
+```bash
+python scripts/bump_workspace_updated_at.py --home "<codex-home>" --cwd "<workspace-cwd>" --execute
+```
+
 ## Copy vs. Migrate Inside One CODEX_HOME
 
 When both the source and target workspace paths live inside the same `CODEX_HOME`, distinguish between these two intents:
@@ -116,6 +145,8 @@ When you use this skill in a conversation, do these things explicitly:
    - `<replace this with the real target workspace path on the target computer>`
    Do not wrap unknown placeholder values in misleading prose such as "I will first place the zip..." because that makes the prompt harder to scan.
 12. When the request is a straightforward source-side cross-device transfer and `scripts/prepare_transfer_handoff.py` is available, call it first. Do not spend extra turns listing the scripts directory, reading script source, or probing obvious paths unless that one-shot command fails.
+13. When repairing sidebar visibility, treat `session_index.jsonl` -> `thread_name` as the sidebar remark label. Do not blindly overwrite it with sqlite `threads.title`.
+14. If all three layers already contain the thread but the sidebar workspace group still says "no threads", consider recent-thread window behavior before concluding the data is gone.
 
 When the user gives a thread title or fragment rather than a thread id, prefer:
 
@@ -212,6 +243,7 @@ Open only what is needed:
 - Data model: `references/data-model.md`
 - Path mapping rules: `references/path-mapping.md`
 - SQLite behavior: `references/sqlite-notes.md`
+- Sidebar recovery: `references/sidebar-recovery.md`
 - Validation coverage: `references/test-matrix.md`
 
 ## Scripts
@@ -219,12 +251,14 @@ Open only what is needed:
 - `scripts/inspect_codex_home.py`
 - `scripts/list_threads.py`
 - `scripts/search_threads.py`
+- `scripts/repair_session_index.py`
 - `scripts/prepare_transfer_handoff.py`
 - `scripts/diff_threads.py`
 - `scripts/plan_migration.py`
 - `scripts/migrate_threads.py`
 - `scripts/rewrite_cwd.py`
 - `scripts/sync_sqlite_threads.py`
+- `scripts/bump_workspace_updated_at.py`
 - `scripts/verify_migration.py`
 - `scripts/rollback_from_backup.py`
 - `scripts/codex_bundle_lib.py`

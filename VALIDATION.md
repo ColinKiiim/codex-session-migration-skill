@@ -2,7 +2,7 @@
 
 Chinese version below.
 
-Updated: 2026-03-20
+Updated: 2026-04-07
 
 ## English
 
@@ -45,6 +45,11 @@ Updated: 2026-03-20
 - workspace-path rebinding and SQLite synchronization
 - recovery from workspace rename and path drift on Windows
 - same-home migrate with source-thread archive on Windows
+- macOS same-home diagnosis of sidebar invisibility across session files, `session_index.jsonl`, and sqlite
+- repair of `session_index.jsonl` drift with missing ids plus duplicate ids
+- restoration of sidebar remark names from an older index backup without reverting repaired `updated_at`
+- workspace-scoped `updated_at` promotion on macOS to re-surface older threads in the sidebar
+- dry-run repair tooling that reports and skips malformed session JSONL files instead of aborting
 
 ## Not Yet Verified
 
@@ -110,6 +115,11 @@ This repository intentionally avoids stronger claims than the evidence supports.
 - 被篡改 bundle 的校验失败检测
 - 工作区路径重绑与 SQLite 同步
 - Windows 上因工作区改名导致的路径漂移恢复
+- macOS 上基于 session 文件、`session_index.jsonl` 和 sqlite 的同机侧栏不可见诊断
+- 对缺 id 且有重复 id 的 `session_index.jsonl` 漂移修复
+- 在不回退已修复 `updated_at` 的前提下，从旧 index 备份恢复侧栏备注名
+- macOS 上按工作区提升 `updated_at`，让较旧线程重新进入侧栏
+- dry-run 修复脚本在遇到损坏 session JSONL 文件时会报告并跳过，而不是直接中断
 
 ## 尚未验证
 

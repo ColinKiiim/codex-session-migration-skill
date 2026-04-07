@@ -28,6 +28,10 @@ Other useful fields for upsert:
 - `cli_version`
 - `first_user_message`
 
+Recent-thread visibility can also depend on:
+
+- `updated_at`
+
 ## Safety Guidance
 
 - Use transactions.
@@ -38,3 +42,10 @@ Other useful fields for upsert:
 ## Practical Rule
 
 If the target home has `state_5.sqlite`, assume it needs synchronization unless a dry-run inspection proves the relevant thread rows are already correct.
+
+## Sidebar Repair Rule
+
+When repairing an existing desktop home:
+
+- keep `session_index.jsonl -> thread_name` unless the user explicitly wants new titles
+- sync sqlite `updated_at` together with index `updated_at` when you intentionally promote older workspace threads back into the sidebar
