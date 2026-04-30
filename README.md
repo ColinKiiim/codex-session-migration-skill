@@ -55,14 +55,10 @@ That does not automatically mean it will appear in Codex's built-in searchable s
 
 ## Migration Retirement Behavior
 
-### English
-
 - `copy` keeps the source thread active and creates a second active thread at the new workspace path.
 - `migrate` creates the new target thread first, verifies it, and then archives the old source thread instead of leaving two active copies behind.
 
 ## Sidebar Recovery
-
-### English
 
 This repository now also covers a same-home repair class that is easy to misdiagnose as "thread loss":
 
@@ -77,27 +73,6 @@ The practical repair boundary is:
 - treat `thread_name` as the sidebar remark label
 - test a small `updated_at` bump before promoting an entire workspace
 - restart Codex after metadata repair
-
-### 中文
-
-- `copy` 会保留源线程为活跃状态，同时在新的工作目录下创建第二个活跃线程。
-- `migrate` 会先创建并验证新的目标线程，然后把旧的源线程归档，而不是在主列表里保留两个活跃副本。
-
-### 中文
-
-这个仓库现在也覆盖了一类容易被误判为“线程丢失”的同机修复场景：
-
-- session 文件还在
-- sqlite 行还在
-- `session_index.jsonl` 缺 id 或有重复 id
-- 或者工作区只是因为线程太旧，暂时掉出了当前的 recent-thread 窗口
-
-实践上的修复边界是：
-
-- 修 `session_index.jsonl` 时不要破坏 `thread_name`
-- 把 `thread_name` 当成侧栏备注名
-- 先做小范围 `updated_at` 测试，再决定是否提升整个工作区
-- 元数据修完后重启 Codex
 
 ## 中文
 
@@ -148,3 +123,24 @@ The practical repair boundary is:
 这个仓库已经适合通过 GitHub 的 repo/path 方式安装。
 
 但这并不自动意味着它会出现在 Codex 内置的可搜索技能目录里。公开 GitHub 仓库是正确基础，但想实现“搜索并点加号安装”，通常还需要被纳入 Codex 支持的 catalog 来源。
+
+## 迁移后的源线程处理策略
+
+- `copy` 会保留源线程为活跃状态，同时在新的工作目录下创建第二个活跃线程。
+- `migrate` 会先创建并验证新的目标线程，然后把旧的源线程归档，而不是在主列表里保留两个活跃副本。
+
+## 侧栏恢复
+
+这个仓库现在也覆盖了一类容易被误判为“线程丢失”的同机修复场景：
+
+- session 文件还在
+- sqlite 行还在
+- `session_index.jsonl` 缺 id 或有重复 id
+- 或者工作区只是因为线程太旧，暂时掉出了当前的 recent-thread 窗口
+
+实践上的修复边界是：
+
+- 修 `session_index.jsonl` 时不要破坏 `thread_name`
+- 把 `thread_name` 当成侧栏备注名
+- 先做小范围 `updated_at` 测试，再决定是否提升整个工作区
+- 元数据修完后重启 Codex
