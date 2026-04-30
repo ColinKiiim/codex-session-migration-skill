@@ -1,6 +1,6 @@
 interface:
   display_name: "Codex Session Migration"
-  short_description: "Move, rebind, or recover hidden Codex threads"
-  default_prompt: "Use $codex-session-migration to migrate, rebind, repair, clone, or recover hidden Codex threads across homes, workspace paths, and sidebar metadata."
+  short_description: "Move, rebind, diagnose, or recover Codex threads"
+  default_prompt: "Use $codex-session-migration to migrate, rebind, repair, clone, diagnose malformed session files, or recover hidden Codex threads across homes, workspace paths, and sidebar metadata."
 policy:
   allow_implicit_invocation: true

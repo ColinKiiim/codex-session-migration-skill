@@ -46,6 +46,7 @@ Practical note:
 
 - `thread_name` is the safest source of the sidebar remark label.
 - sqlite `threads.title` may be a different value, often longer and less user-friendly.
+- rebind and index-repair tools should preserve an existing `thread_name` unless the user explicitly wants it renamed.
 
 ### 3. SQLite cache
 
@@ -67,6 +68,7 @@ Practical note:
 
 - `updated_at` in sqlite can affect whether a workspace still appears to have recent threads in the desktop sidebar.
 - if sqlite and index both contain the thread but the workspace still looks empty, recency-window behavior is a plausible explanation.
+- same-home rebind repairs should update sqlite `cwd` together with session JSONL cwd fields.
 
 ## Practical Consequence
 
@@ -79,6 +81,8 @@ A reliable migration usually needs all three layers to agree on:
 
 If session files and index are copied but sqlite is not synchronized, the target app may still group the thread under the wrong workspace or fail to surface it until later.
 
+Malformed or truncated session JSONL files are not necessarily evidence that every thread is unusable. Metadata-only operations can still use `session_index.jsonl` and sqlite rows to resolve unrelated thread ids, repair index drift, or report the bad file list for separate recovery.
+
 ## Bundle Consequence
 
 The bundle zip is intentionally single-thread scoped.
@@ -88,3 +92,5 @@ It is not a full `CODEX_HOME` export. Instead, it captures enough data to recrea
 ## Practical Search Consequence
 
 When a user refers to a thread by a human-readable title fragment rather than a thread id, the skill should resolve that fragment against the catalog first instead of manually scanning raw files.
+
+If parsing the raw catalog is blocked by malformed JSONL files, use metadata-only lookup against sqlite and `session_index.jsonl` instead.

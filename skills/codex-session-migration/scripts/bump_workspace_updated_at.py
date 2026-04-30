@@ -5,24 +5,26 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import json
 from pathlib import Path
 from typing import Any
 
 from codex_migration_lib import (
     backup_file,
+    build_catalog_safe as lib_build_catalog_safe,
     create_backup_dir,
     ensure_codex_home,
     json_dump,
     load_session_index,
-    load_sqlite_threads,
     parse_iso_to_epoch,
-    scan_session_files,
-    summarize_session_file,
     sqlite_path,
     upsert_threads_sqlite,
     write_json,
     write_session_index,
+)
+
+UI_REFRESH_HINT = (
+    "Check the Codex Desktop sidebar first. Recent Desktop builds may refresh visible threads "
+    "without a full restart. If the threads do not appear, fully restart Codex Desktop to force a reload."
 )
 
 
@@ -47,88 +49,7 @@ def record_epoch(record: dict[str, Any]) -> int:
 
 
 def build_safe_catalog(home: Path, *, include_archived: bool) -> tuple[dict[str, dict[str, Any]], list[dict[str, str]]]:
-    current_index = load_session_index(home)
-    sqlite_rows = load_sqlite_threads(home) if sqlite_path(home).exists() else {}
-    records: dict[str, dict[str, Any]] = {
-        sid: {
-            "id": sid,
-            "title": row.get("thread_name"),
-            "updated_at": row.get("updated_at"),
-            "cwd": None,
-            "session_path": None,
-            "archived": False,
-            "index_entry": row,
-            "source": None,
-            "cli_version": None,
-            "model_provider": None,
-            "source_sqlite_row": None,
-            "sandbox_policy": None,
-            "approval_mode": None,
-            "session_meta_timestamp": None,
-            "last_timestamp": None,
-        }
-        for sid, row in current_index.items()
-    }
-    skipped_invalid: list[dict[str, str]] = []
-    for session_path in scan_session_files(home, include_archived):
-        try:
-            summary = summarize_session_file(home, session_path)
-        except json.JSONDecodeError as exc:
-            skipped_invalid.append({"session_path": str(session_path), "error": str(exc)})
-            continue
-        sid = summary.get("id")
-        if not sid:
-            continue
-        record = records.setdefault(
-            sid,
-            {
-                "id": sid,
-                "title": None,
-                "updated_at": None,
-                "cwd": None,
-                "session_path": None,
-                "archived": False,
-                "index_entry": None,
-                "source": None,
-                "cli_version": None,
-                "model_provider": None,
-                "source_sqlite_row": None,
-                "sandbox_policy": None,
-                "approval_mode": None,
-                "session_meta_timestamp": None,
-                "last_timestamp": None,
-            },
-        )
-        if record["session_path"] and not record["archived"] and summary["archived"]:
-            continue
-        record.update(summary)
-    for sid, row in sqlite_rows.items():
-        record = records.setdefault(
-            sid,
-            {
-                "id": sid,
-                "title": row.get("title"),
-                "updated_at": None,
-                "cwd": row.get("cwd"),
-                "session_path": None,
-                "archived": bool(row.get("archived")),
-                "index_entry": None,
-                "source": row.get("source"),
-                "cli_version": row.get("cli_version"),
-                "model_provider": row.get("model_provider"),
-                "source_sqlite_row": None,
-                "sandbox_policy": row.get("sandbox_policy"),
-                "approval_mode": row.get("approval_mode"),
-                "session_meta_timestamp": None,
-                "last_timestamp": None,
-            },
-        )
-        record["source_sqlite_row"] = row
-        if not record.get("cwd"):
-            record["cwd"] = row.get("cwd")
-        if not record.get("title"):
-            record["title"] = row.get("title")
-    return records, skipped_invalid
+    return lib_build_catalog_safe(home, include_archived=include_archived, include_sqlite=True)
 
 
 def build_selected_records(
@@ -231,6 +152,7 @@ def main() -> int:
         "session_index_backup": None,
         "sqlite_backup_files": [],
         "skipped_invalid_session_files": skipped_invalid,
+        "ui_refresh_hint": UI_REFRESH_HINT,
         "updates": [
             {
                 "id": item["id"],

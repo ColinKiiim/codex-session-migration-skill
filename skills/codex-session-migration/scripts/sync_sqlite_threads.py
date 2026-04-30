@@ -4,55 +4,71 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from codex_migration_lib import (
     MigrationError,
-    build_catalog,
     create_backup_dir,
     ensure_codex_home,
+    find_session_path_by_thread_id,
+    invalid_session_warning,
     json_dump,
+    load_session_index,
+    load_sqlite_threads,
     parse_spec,
     plan_from_spec,
     read_json,
+    summarize_session_file,
     upsert_threads_sqlite,
 )
 
 
-def gather_threads(home: Path, plan: dict | None, thread_ids: list[str], cwd: str | None) -> list[dict]:
+def gather_threads(home: Path, plan: dict | None, thread_ids: list[str], cwd: str | None) -> tuple[list[dict], list[dict[str, str]]]:
     if plan is not None:
         rows = plan["threads"]
         if thread_ids:
             wanted = set(thread_ids)
             rows = [row for row in rows if row["id"] in wanted]
-        return rows
+        return rows, []
     if not thread_ids:
         raise MigrationError("Direct mode requires at least one --thread-id")
-    catalog = build_catalog(home, include_archived=True, include_sqlite=True)
+    sqlite_rows = load_sqlite_threads(home, thread_ids)
+    index_rows = load_session_index(home)
     rows = []
+    warnings: list[dict[str, str]] = []
     for thread_id in thread_ids:
-        record = catalog.get(thread_id)
-        if not record or not record.get("session_path"):
+        source_row = dict(sqlite_rows.get(thread_id) or {})
+        index_entry = index_rows.get(thread_id)
+        session_path = find_session_path_by_thread_id(home, thread_id, sqlite_row=source_row, include_archived=True)
+        if not session_path:
             raise MigrationError(f"Thread is missing a session file: {thread_id}")
+        summary: dict = {}
+        try:
+            summary = summarize_session_file(home, session_path)
+        except json.JSONDecodeError as exc:
+            if not source_row:
+                raise MigrationError(f"Thread has no sqlite row and its session file is invalid: {thread_id}") from exc
+            warnings.append(invalid_session_warning(session_path, exc))
         rows.append(
             {
                 "id": thread_id,
-                "title": record.get("title"),
-                "source_archived": bool(record.get("archived")),
-                "target_session_path": record["session_path"],
-                "target_cwd": cwd or record.get("cwd"),
-                "source_sqlite_row": record.get("source_sqlite_row"),
-                "source": record.get("source"),
-                "cli_version": record.get("cli_version"),
-                "model_provider": record.get("model_provider"),
-                "sandbox_policy": record.get("sandbox_policy"),
-                "approval_mode": record.get("approval_mode"),
-                "session_meta_timestamp": record.get("session_meta_timestamp"),
-                "last_timestamp": record.get("last_timestamp"),
-                "source_index_entry": record.get("index_entry"),
+                "title": source_row.get("title") or (index_entry or {}).get("thread_name") or summary.get("title"),
+                "source_archived": bool(source_row.get("archived")) or bool(summary.get("archived")),
+                "target_session_path": str(session_path),
+                "target_cwd": cwd or source_row.get("cwd") or summary.get("cwd"),
+                "source_sqlite_row": source_row,
+                "source": source_row.get("source") or summary.get("source"),
+                "cli_version": source_row.get("cli_version") or summary.get("cli_version"),
+                "model_provider": source_row.get("model_provider") or summary.get("model_provider"),
+                "sandbox_policy": source_row.get("sandbox_policy") or summary.get("sandbox_policy"),
+                "approval_mode": source_row.get("approval_mode") or summary.get("approval_mode"),
+                "session_meta_timestamp": summary.get("session_meta_timestamp"),
+                "last_timestamp": summary.get("last_timestamp"),
+                "source_index_entry": index_entry,
             }
         )
-    return rows
+    return rows, warnings
 
 
 def main() -> int:
@@ -82,10 +98,10 @@ def main() -> int:
     else:
         raise SystemExit("Provide --plan, --spec, or --home")
 
-    threads = gather_threads(home, plan, args.thread_id, args.cwd)
+    threads, warnings = gather_threads(home, plan, args.thread_id, args.cwd)
     backup_dir = create_backup_dir(home, "sqlite-sync")
     result = upsert_threads_sqlite(home, threads, backup_dir / "sqlite_before")
-    print(json_dump({"status": "ok", "backup_dir": str(backup_dir), "rows": result["rows"]}))
+    print(json_dump({"status": "ok", "backup_dir": str(backup_dir), "rows": result["rows"], "warnings": warnings}))
     return 0
 
 

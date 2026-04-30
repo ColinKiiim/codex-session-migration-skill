@@ -1,6 +1,6 @@
 ---
 name: codex-session-migration
-description: Migrate, merge, copy, clone, repair, or rebind Codex conversation history between CODEX_HOME directories and workspace paths across Windows, WSL, and Linux. Use when Codex threads need to be moved between hosts, restored from another .codex directory, merged into a desktop history, reclassified under a different cwd, recovered after disappearing from the sidebar or recent-thread window, repaired through session_index.jsonl/state_5.sqlite synchronization, or verified across sessions, session_index.jsonl, and state_5.sqlite.
+description: Migrate, merge, copy, clone, repair, diagnose, or rebind Codex conversation history between CODEX_HOME directories and workspace paths across Windows, macOS, WSL, and Linux. Use when Codex threads need to be moved between hosts, restored from another .codex directory, merged into a desktop history, searched by id/title/cwd/index name, reclassified under a different cwd, recovered after disappearing from the sidebar or recent-thread window, diagnosed despite malformed or truncated session JSONL files, repaired through session_index.jsonl/state_5.sqlite synchronization, or verified across sessions, session_index.jsonl, and state_5.sqlite.
 ---
 
 # Codex Session Migration
@@ -22,6 +22,8 @@ python scripts/inspect_codex_home.py --home "<source-codex-home>"
 python scripts/inspect_codex_home.py --home "<target-codex-home>"
 ```
 
+If inspection reports `skipped_invalid_session_files`, do not let those files block metadata-only repair or unrelated thread migration. Use `diagnose_sessions.py` to list malformed files, then treat those specific threads as a separate recovery problem.
+
 List or diff threads before planning writes:
 
 ```bash
@@ -36,7 +38,7 @@ python scripts/diff_threads.py --source-home "<source-codex-home>" --target-home
 3. Review the plan before touching any data.
 4. Execute the migration.
 5. Verify the result.
-6. Restart Codex so the target app reloads its local state.
+6. Check Codex Desktop first, then fully restart Codex if the target app has not refreshed its local state.
 
 Dry-run planning:
 
@@ -60,10 +62,23 @@ python scripts/verify_migration.py --plan plan.json
 
 Use rebind-only when the thread data is already in the target home and only the workspace grouping is wrong.
 
-1. Prepare a spec with `"mode": "rebind-only"`.
-2. Generate a plan.
-3. Execute the plan.
-4. Verify and restart Codex.
+For one or more known thread ids, prefer the direct same-home rebind script:
+
+```bash
+python scripts/rebind_threads.py --home "<codex-home>" --thread-id "<thread-id>" --target-cwd "<new-workspace-cwd>" --promote-to-sidebar
+python scripts/rebind_threads.py --home "<codex-home>" --thread-id "<thread-id>" --target-cwd "<new-workspace-cwd>" --promote-to-sidebar --execute
+python scripts/verify_thread_binding.py --home "<codex-home>" --cwd "<new-workspace-cwd>" --thread-id "<thread-id>"
+```
+
+Pass repeated `--thread-id` values to rebind a small set together. The script preserves `session_index.jsonl -> thread_name`, updates sqlite, rewrites session cwd fields, and emits a `ui_refresh_hint` telling the operator to check the sidebar before restarting.
+
+If the user only gives a title, sidebar remark, or workspace fragment, resolve likely ids without parsing raw JSONL bodies:
+
+```bash
+python scripts/search_thread_index.py --home "<codex-home>" --query "<title-or-cwd-fragment>" --format json
+```
+
+Use the spec-based `"mode": "rebind-only"` workflow when you need complex path mapping rules or cross-home planning:
 
 If you need to adjust `cwd` without a full migration, use:
 
@@ -79,8 +94,9 @@ Use this when the user says threads disappeared from the left sidebar inside one
 1. Inspect the three layers first.
 2. Repair `session_index.jsonl` if ids are missing or duplicated.
 3. Preserve sidebar remark names from an older index backup if needed.
-4. Restart Codex and re-check.
+4. Check the Codex Desktop sidebar first. Recent Desktop builds may refresh visible threads without a full restart.
 5. If the workspace group still looks empty even though the thread exists in all three layers, test a metadata-only `updated_at` bump for only the newest few matching threads first.
+6. Fully restart Codex only if the sidebar does not refresh after the metadata repair or bump.
 
 Dry-run and then execute index repair:
 
@@ -153,6 +169,9 @@ When you use this skill in a conversation, do these things explicitly:
 12. When the request is a straightforward source-side cross-device transfer and `scripts/prepare_transfer_handoff.py` is available, call it first. Do not spend extra turns listing the scripts directory, reading script source, or probing obvious paths unless that one-shot command fails.
 13. When repairing sidebar visibility, treat `session_index.jsonl` -> `thread_name` as the sidebar remark label. Do not blindly overwrite it with sqlite `threads.title`.
 14. If all three layers already contain the thread but the sidebar workspace group still says "no threads", consider recent-thread window behavior before concluding the data is gone.
+15. If raw session parsing fails because one or more JSONL files are malformed, use `search_thread_index.py` for metadata-only lookup and `diagnose_sessions.py` for the malformed-file list. Do not abandon unrelated repair work just because a different session file is truncated.
+16. For same-home rebind of known ids, prefer `rebind_threads.py` over hand-chaining `rewrite_cwd.py` and `sync_sqlite_threads.py`; it preserves sidebar names, updates sqlite, and can promote recency in one reviewed dry-run.
+17. After metadata-only sidebar recovery, tell the user to check the sidebar first. If the thread is still missing, then ask them to fully restart Codex.
 
 When the user gives a thread title or fragment rather than a thread id, prefer:
 
@@ -258,14 +277,18 @@ Open only what is needed:
 - `scripts/inspect_codex_home.py`
 - `scripts/list_threads.py`
 - `scripts/search_threads.py`
+- `scripts/search_thread_index.py`
+- `scripts/diagnose_sessions.py`
 - `scripts/repair_session_index.py`
 - `scripts/prepare_transfer_handoff.py`
 - `scripts/diff_threads.py`
 - `scripts/plan_migration.py`
 - `scripts/migrate_threads.py`
+- `scripts/rebind_threads.py`
 - `scripts/rewrite_cwd.py`
 - `scripts/sync_sqlite_threads.py`
 - `scripts/bump_workspace_updated_at.py`
+- `scripts/verify_thread_binding.py`
 - `scripts/verify_migration.py`
 - `scripts/rollback_from_backup.py`
 - `scripts/codex_bundle_lib.py`

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 
-from codex_migration_lib import build_catalog, ensure_codex_home, json_dump
+from codex_migration_lib import build_catalog_safe, ensure_codex_home, json_dump
 
 
 def main() -> int:
@@ -16,7 +16,7 @@ def main() -> int:
     args = parser.parse_args()
 
     home = ensure_codex_home(args.home)
-    catalog = build_catalog(home, include_archived=args.include_archived, include_sqlite=True)
+    catalog, skipped_invalid = build_catalog_safe(home, include_archived=args.include_archived, include_sqlite=True)
     rows = sorted(
         [
             {
@@ -33,7 +33,7 @@ def main() -> int:
         key=lambda row: (row.get("updated_at") or "", row["id"]),
     )
     if args.format == "json":
-        print(json_dump(rows))
+        print(json_dump({"threads": rows, "skipped_invalid_session_files": skipped_invalid}))
         return 0
 
     for row in rows:

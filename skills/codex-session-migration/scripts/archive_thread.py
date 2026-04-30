@@ -12,7 +12,7 @@ from pathlib import Path
 
 from codex_migration_lib import (
     MigrationError,
-    build_catalog,
+    build_catalog_safe,
     copy_sqlite_bundle,
     create_backup_dir,
     ensure_codex_home,
@@ -30,7 +30,7 @@ def now_stamp() -> str:
 
 
 def archive_thread(home: Path, thread_id: str, execute: bool) -> dict[str, object]:
-    catalog = build_catalog(home, include_archived=True, include_sqlite=True)
+    catalog, skipped_invalid = build_catalog_safe(home, include_archived=True, include_sqlite=True)
     record = catalog.get(thread_id)
     if not record:
         raise MigrationError(f"Thread not found: {thread_id}")
@@ -59,6 +59,7 @@ def archive_thread(home: Path, thread_id: str, execute: bool) -> dict[str, objec
         "sqlite_present": db_path.exists(),
         "index_present": index_path.exists(),
         "sqlite_backups": sqlite_backups,
+        "skipped_invalid_session_files": skipped_invalid,
         "execute": execute,
     }
     if not execute:

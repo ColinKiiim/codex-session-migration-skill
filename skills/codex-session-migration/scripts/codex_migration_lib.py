@@ -42,11 +42,18 @@ def write_json(path: Path, data: Any) -> None:
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    for line_no, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         line = raw.strip()
         if not line:
             continue
-        items.append(json.loads(line))
+        try:
+            items.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            wrapped = json.JSONDecodeError(f"{exc.msg} in {path} at line {line_no}", exc.doc, exc.pos)
+            wrapped.jsonl_path = str(path)
+            wrapped.jsonl_line = line_no
+            wrapped.jsonl_column = exc.colno
+            raise wrapped from exc
     return items
 
 
@@ -160,6 +167,42 @@ def scan_session_files(home: Path, include_archived: bool) -> list[Path]:
     return paths
 
 
+def invalid_session_warning(session_path: Path, exc: Exception) -> dict[str, str]:
+    warning = {
+        "session_path": str(session_path),
+        "thread_id": extract_thread_id(session_path) or "",
+        "error": f"{type(exc).__name__}: {exc}",
+    }
+    if isinstance(exc, json.JSONDecodeError):
+        warning["line"] = str(getattr(exc, "jsonl_line", exc.lineno))
+        warning["column"] = str(getattr(exc, "jsonl_column", exc.colno))
+    return warning
+
+
+def find_session_path_by_thread_id(
+    home: Path,
+    thread_id: str,
+    *,
+    sqlite_row: dict[str, Any] | None = None,
+    include_archived: bool = True,
+) -> Path | None:
+    if sqlite_row and sqlite_row.get("rollout_path"):
+        candidate = Path(sqlite_row["rollout_path"])
+        if candidate.exists():
+            return candidate
+    roots = [home / "sessions"]
+    if include_archived:
+        roots.append(home / "archived_sessions")
+    suffix = f"-{thread_id}.jsonl"
+    for root in roots:
+        if not root.exists():
+            continue
+        matches = sorted(path for path in root.rglob("rollout-*.jsonl") if path.name.endswith(suffix))
+        if matches:
+            return matches[0]
+    return None
+
+
 def is_archived_session(home: Path, session_path: Path) -> bool:
     try:
         session_path.relative_to(home / "archived_sessions")
@@ -214,7 +257,16 @@ def summarize_session_file(home: Path, session_path: Path) -> dict[str, Any]:
     }
 
 
-def build_catalog(home: Path, include_archived: bool = False, include_sqlite: bool = False) -> dict[str, dict[str, Any]]:
+def build_catalog(
+    home: Path,
+    include_archived: bool = False,
+    include_sqlite: bool = False,
+    *,
+    on_invalid_session: str = "raise",
+    invalid_sessions: list[dict[str, str]] | None = None,
+) -> dict[str, dict[str, Any]]:
+    if on_invalid_session not in {"raise", "skip", "record"}:
+        raise MigrationError(f"Unsupported on_invalid_session mode: {on_invalid_session}")
     index_rows = load_session_index(home)
     records: dict[str, dict[str, Any]] = {}
     for sid, row in index_rows.items():
@@ -238,7 +290,14 @@ def build_catalog(home: Path, include_archived: bool = False, include_sqlite: bo
     files = scan_session_files(home, include_archived)
     files.sort(key=lambda path: (is_archived_session(home, path), str(path)))
     for session_path in files:
-        summary = summarize_session_file(home, session_path)
+        try:
+            summary = summarize_session_file(home, session_path)
+        except json.JSONDecodeError as exc:
+            if on_invalid_session == "raise":
+                raise
+            if invalid_sessions is not None:
+                invalid_sessions.append(invalid_session_warning(session_path, exc))
+            continue
         sid = summary["id"]
         if not sid:
             continue
@@ -305,6 +364,22 @@ def build_catalog(home: Path, include_archived: bool = False, include_sqlite: bo
                     except ValueError:
                         pass
     return records
+
+
+def build_catalog_safe(
+    home: Path,
+    include_archived: bool = False,
+    include_sqlite: bool = False,
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, str]]]:
+    skipped_invalid: list[dict[str, str]] = []
+    records = build_catalog(
+        home,
+        include_archived=include_archived,
+        include_sqlite=include_sqlite,
+        on_invalid_session="record",
+        invalid_sessions=skipped_invalid,
+    )
+    return records, skipped_invalid
 
 
 def detect_path_style(value: str) -> str:
@@ -424,8 +499,22 @@ def plan_from_spec(spec: dict[str, Any]) -> dict[str, Any]:
     source_home = ensure_codex_home(spec.get("source_home") or spec["target_home"])
     target_home = ensure_codex_home(spec["target_home"])
     include_archived = spec["include_archived"]
-    source_catalog = build_catalog(source_home, include_archived=include_archived, include_sqlite=True)
-    target_catalog = build_catalog(target_home, include_archived=True, include_sqlite=True)
+    source_skipped_invalid: list[dict[str, str]] = []
+    target_skipped_invalid: list[dict[str, str]] = []
+    source_catalog = build_catalog(
+        source_home,
+        include_archived=include_archived,
+        include_sqlite=True,
+        on_invalid_session="record",
+        invalid_sessions=source_skipped_invalid,
+    )
+    target_catalog = build_catalog(
+        target_home,
+        include_archived=True,
+        include_sqlite=True,
+        on_invalid_session="record",
+        invalid_sessions=target_skipped_invalid,
+    )
     target_has_sqlite = sqlite_path(target_home).exists()
     selected_ids = sorted(sid for sid in source_catalog if sid not in target_catalog) if mode == "copy-missing" else list(spec["thread_ids"])
     threads: list[dict[str, Any]] = []
@@ -511,6 +600,10 @@ def plan_from_spec(spec: dict[str, Any]) -> dict[str, Any]:
         "path_rules": spec["path_rules"],
         "thread_ids": selected_ids,
         "errors": errors,
+        "skipped_invalid_session_files": {
+            "source": source_skipped_invalid,
+            "target": target_skipped_invalid,
+        },
         "summary": summary,
         "threads": threads,
     }

@@ -11,7 +11,7 @@ from pathlib import Path
 from codex_migration_lib import (
     MigrationError,
     backup_file,
-    build_catalog,
+    build_catalog_safe,
     create_backup_dir,
     ensure_codex_home,
     json_dump,
@@ -81,7 +81,8 @@ def resolve_source(home: Path, thread_id: str) -> dict:
             "archived": bool(sqlite_row.get("archived")) if sqlite_row else False,
         }
 
-    record = build_catalog(home, include_archived=True, include_sqlite=True).get(thread_id)
+    catalog, _skipped_invalid = build_catalog_safe(home, include_archived=True, include_sqlite=True)
+    record = catalog.get(thread_id)
     if not record or not record.get("session_path"):
         raise MigrationError(f"Thread not found or missing session file: {thread_id}")
     return {

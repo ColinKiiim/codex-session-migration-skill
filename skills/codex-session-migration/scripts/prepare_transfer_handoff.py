@@ -17,7 +17,7 @@ from codex_bundle_lib import (
     write_bundle,
     write_prompt_file,
 )
-from codex_migration_lib import build_catalog
+from codex_migration_lib import build_catalog_safe
 from search_threads import score_row
 
 
@@ -48,7 +48,7 @@ def sha256_file(path: Path) -> str:
 
 
 def resolve_thread(home: Path, query: str, include_archived: bool = False) -> dict:
-    catalog = build_catalog(home, include_archived=include_archived, include_sqlite=True)
+    catalog, _skipped_invalid = build_catalog_safe(home, include_archived=include_archived, include_sqlite=True)
     rows = []
     for item in catalog.values():
         if not include_archived and item.get("archived"):

@@ -9,10 +9,11 @@ from pathlib import Path
 from codex_migration_lib import (
     MigrationError,
     backup_file,
-    build_catalog,
     create_backup_dir,
     ensure_codex_home,
+    find_session_path_by_thread_id,
     json_dump,
+    load_sqlite_threads,
     parse_spec,
     plan_from_spec,
     read_json,
@@ -29,16 +30,17 @@ def selected_threads_from_inputs(home: Path, plan: dict | None, thread_ids: list
         return items
     if not thread_ids or cwd is None:
         raise MigrationError("Direct mode requires --thread-id and --cwd")
-    catalog = build_catalog(home, include_archived=True, include_sqlite=False)
+    sqlite_rows = load_sqlite_threads(home, thread_ids)
     rows = []
     for thread_id in thread_ids:
-        record = catalog.get(thread_id)
-        if not record or not record.get("session_path"):
+        sqlite_row = sqlite_rows.get(thread_id)
+        session_path = find_session_path_by_thread_id(home, thread_id, sqlite_row=sqlite_row, include_archived=True)
+        if not session_path:
             raise MigrationError(f"Thread is missing a target session file: {thread_id}")
         rows.append(
             {
                 "id": thread_id,
-                "target_session_path": record["session_path"],
+                "target_session_path": str(session_path),
                 "target_cwd": cwd,
             }
         )

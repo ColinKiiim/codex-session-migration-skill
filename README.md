@@ -15,6 +15,8 @@ It supports more than moving threads across different `CODEX_HOME` directories. 
 - repairing sidebar invisibility caused by `session_index.jsonl` drift
 - preserving sidebar remark names stored in `session_index.jsonl -> thread_name`
 - metadata-only recency promotion to re-surface older workspace threads in the sidebar
+- metadata-only thread lookup through sqlite and `session_index.jsonl` when raw JSONL parsing is not needed
+- diagnosis of malformed or truncated session JSONL files without blocking unrelated repairs
 - cloning one existing thread into a second active thread under a new workspace path
 - single-thread bundle export and import for cross-device transfer
 - source-side handoff prompt generation and target-side cleanup prompt generation
@@ -65,14 +67,16 @@ This repository now also covers a same-home repair class that is easy to misdiag
 - session files still exist
 - sqlite rows still exist
 - `session_index.jsonl` is missing ids or contains duplicate ids
+- some unrelated session JSONL files are malformed
 - or the workspace only looks empty because its threads are too old for the current recent-thread window
 
 The practical repair boundary is:
 
 - repair `session_index.jsonl` without destroying `thread_name`
 - treat `thread_name` as the sidebar remark label
+- use metadata-only search when malformed session files should not block lookup
 - test a small `updated_at` bump before promoting an entire workspace
-- restart Codex after metadata repair
+- check the Codex sidebar first after metadata repair; restart only if the repaired threads do not appear
 
 ## 中文
 
@@ -87,6 +91,8 @@ The practical repair boundary is:
 - 修复由 `session_index.jsonl` 漂移导致的侧栏线程不可见
 - 保留 `session_index.jsonl -> thread_name` 中的侧栏备注名
 - 通过只改元数据的 `updated_at` 提升，让较旧工作区重新出现在侧栏中
+- 在不需要解析原始 JSONL 时，通过 sqlite 和 `session_index.jsonl` 做元数据级线程查找
+- 诊断损坏或截断的 session JSONL 文件，同时不阻塞无关线程的修复
 - 将一条已有线程克隆成另一条新 id 的活跃线程，并绑定到新的工作目录
 - 面向跨设备转移的单线程 bundle 导出与导入
 - 源机器生成交接 prompt，目标机器在成功导入后生成清理 prompt
@@ -136,11 +142,13 @@ The practical repair boundary is:
 - session 文件还在
 - sqlite 行还在
 - `session_index.jsonl` 缺 id 或有重复 id
+- 有些无关 session JSONL 文件损坏
 - 或者工作区只是因为线程太旧，暂时掉出了当前的 recent-thread 窗口
 
 实践上的修复边界是：
 
 - 修 `session_index.jsonl` 时不要破坏 `thread_name`
 - 把 `thread_name` 当成侧栏备注名
+- 当损坏 session 文件不该阻塞查找时，使用元数据级搜索
 - 先做小范围 `updated_at` 测试，再决定是否提升整个工作区
-- 元数据修完后重启 Codex
+- 元数据修完后先看 Codex 侧栏；如果修复后的线程仍未出现，再重启 Codex

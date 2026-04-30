@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import unicodedata
 
-from codex_migration_lib import build_catalog, ensure_codex_home, json_dump
+from codex_migration_lib import build_catalog_safe, ensure_codex_home, json_dump
 
 
 def normalize_search_text(value: str) -> str:
@@ -63,7 +63,7 @@ def main() -> int:
     args = parser.parse_args()
 
     home = ensure_codex_home(args.home)
-    catalog = build_catalog(home, include_archived=args.include_archived, include_sqlite=True)
+    catalog, skipped_invalid = build_catalog_safe(home, include_archived=args.include_archived, include_sqlite=True)
     rows = []
     for item in catalog.values():
         if not args.include_archived and item.get("archived"):
@@ -84,7 +84,7 @@ def main() -> int:
     rows = rows[: max(1, args.limit)]
 
     if args.format == "json":
-        print(json_dump(rows))
+        print(json_dump({"matches": rows, "skipped_invalid_session_files": skipped_invalid}))
         return 0
 
     for row in rows:

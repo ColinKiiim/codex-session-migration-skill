@@ -149,6 +149,9 @@ This skill supports:
 - rebind-only fixes inside one existing `CODEX_HOME`
 - workspace-path repair after folder rename or move
 - sidebar recovery for hidden threads caused by `session_index.jsonl` drift or old `updated_at`
+- metadata-only search by thread id, title, sidebar remark, cwd, or first-message fragment
+- malformed-session diagnosis that does not block unrelated repairs
+- direct same-home multi-thread rebind with sidebar promotion
 - cloning one thread into a second active thread under a new workspace path
 - bundle-based cross-device transfer
 
@@ -170,18 +173,29 @@ Use this workflow when the user says threads disappeared from the left sidebar b
 2. Dry-run `repair_session_index.py`.
 3. If the user cares about old sidebar remarks and an older index backup exists, pass it as `--name-source-index`.
 4. Execute the repair.
-5. Restart Codex and re-check.
+5. Check the Codex sidebar first. Recent Desktop builds may refresh visible threads without a full restart.
 6. If the workspace group still looks empty, test `bump_workspace_updated_at.py --limit 5`.
 7. Only after a small test works, promote the whole workspace.
+8. Fully restart Codex only if the sidebar does not refresh after the metadata repair or bump.
 
 ### Example Commands
 
 ```bash
 python scripts/inspect_codex_home.py --home "~/.codex" --include-archived
+python scripts/diagnose_sessions.py --home "~/.codex"
+python scripts/search_thread_index.py --home "~/.codex" --query "/absolute/workspace/path" --format json
 python scripts/repair_session_index.py --home "~/.codex" --include-archived
 python scripts/repair_session_index.py --home "~/.codex" --include-archived --name-source-index "~/.codex/session_index.jsonl.bak-YYYYMMDD-HHMMSS" --execute
 python scripts/bump_workspace_updated_at.py --home "~/.codex" --cwd "/absolute/workspace/path" --limit 5 --execute
 python scripts/bump_workspace_updated_at.py --home "~/.codex" --cwd "/absolute/workspace/path" --execute
+```
+
+For known ids that only need to move to a different workspace grouping inside the same home:
+
+```bash
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/workspace/path" --promote-to-sidebar
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/workspace/path" --promote-to-sidebar --execute
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/workspace/path" --thread-id "<thread-id>"
 ```
 
 ## Validation Boundary
@@ -273,6 +287,9 @@ skill 路径：
 - 同一个 `CODEX_HOME` 内的只重绑修复
 - 工作区文件夹改名或移动后的路径修复
 - 修复由 `session_index.jsonl` 漂移或旧 `updated_at` 导致的侧栏隐藏线程
+- 通过线程 id、标题、侧栏备注名、cwd 或首条消息片段做元数据级搜索
+- 诊断损坏的 session 文件，同时不阻塞无关线程的修复
+- 同一个 home 内多线程直接重绑，并可同时提升侧栏可见性
 - 将一条线程克隆成另一条新 id 的活跃线程，并绑定到新的工作目录
 - 基于 bundle 的跨设备线程转移
 
@@ -294,18 +311,29 @@ skill 路径：
 2. 先 dry-run `repair_session_index.py`。
 3. 如果用户在乎旧的侧栏备注名，而且存在较早的 index 备份，就通过 `--name-source-index` 指定它。
 4. 再执行 index 修复。
-5. 重启 Codex 后重新检查。
+5. 先直接看 Codex 侧栏。新版桌面端可能不需要完整重启就刷新出修复后的线程。
 6. 如果工作区分组看起来仍然是空的，再先用 `bump_workspace_updated_at.py --limit 5` 做一个小范围测试。
 7. 只有小测试成功后，再提升整个工作区。
+8. 如果元数据修复或提升后侧栏仍未出现，再完整重启 Codex。
 
 ### 示例命令
 
 ```bash
 python scripts/inspect_codex_home.py --home "~/.codex" --include-archived
+python scripts/diagnose_sessions.py --home "~/.codex"
+python scripts/search_thread_index.py --home "~/.codex" --query "/absolute/workspace/path" --format json
 python scripts/repair_session_index.py --home "~/.codex" --include-archived
 python scripts/repair_session_index.py --home "~/.codex" --include-archived --name-source-index "~/.codex/session_index.jsonl.bak-YYYYMMDD-HHMMSS" --execute
 python scripts/bump_workspace_updated_at.py --home "~/.codex" --cwd "/absolute/workspace/path" --limit 5 --execute
 python scripts/bump_workspace_updated_at.py --home "~/.codex" --cwd "/absolute/workspace/path" --execute
+```
+
+如果已经知道线程 id，只需要在同一个 home 内移动到另一个工作区分组：
+
+```bash
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/workspace/path" --promote-to-sidebar
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/workspace/path" --promote-to-sidebar --execute
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/workspace/path" --thread-id "<thread-id>"
 ```
 
 ## 验证边界

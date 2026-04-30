@@ -58,6 +58,19 @@ Practical consequence:
 
 - repair scripts should report malformed session files and skip them instead of crashing the whole dry-run
 - keep the skipped file list in the report so the operator can decide whether those specific threads need separate recovery
+- use metadata-only search when a title/cwd lookup should not depend on parsing every session JSONL body
+
+### 5. Desktop sidebar live refresh
+
+Observed repair case:
+
+- after metadata repair or rebind, migrated threads appeared in Codex Desktop before a full restart
+- the repair conversation was still running while the sidebar refreshed
+
+Practical consequence:
+
+- do not state that every metadata repair always requires an immediate restart
+- check the sidebar first, then fully restart Codex only if the repaired thread still does not appear
 
 ## Recommended Repair Order
 
@@ -65,7 +78,7 @@ Practical consequence:
 2. Dry-run `repair_session_index.py`.
 3. If sidebar remark names matter and an older index backup exists, pass it via `--name-source-index`.
 4. Execute the index repair.
-5. Restart Codex and check the sidebar again.
+5. Check the sidebar. If it did not refresh, fully restart Codex and check again.
 6. If the workspace group still looks empty even though the threads now exist in all three layers, test `bump_workspace_updated_at.py --limit 5`.
 7. If the small test works, repeat without `--limit` for the whole workspace.
 8. If the report lists malformed session files, treat them as a separate recovery problem instead of mixing them into the same index rewrite.
@@ -76,6 +89,12 @@ Dry-run index repair:
 
 ```bash
 python scripts/repair_session_index.py --home "~/.codex" --include-archived
+```
+
+Search by metadata only when raw session parsing is not needed or malformed files exist:
+
+```bash
+python scripts/search_thread_index.py --home "~/.codex" --query "/absolute/workspace/path" --format json
 ```
 
 Restore sidebar names from an older index backup while repairing the current index:

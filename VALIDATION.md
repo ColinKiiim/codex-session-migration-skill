@@ -2,7 +2,7 @@
 
 Chinese version below.
 
-Updated: 2026-04-07
+Updated: 2026-04-30
 
 ## English
 
@@ -50,6 +50,10 @@ Updated: 2026-04-07
 - restoration of sidebar remark names from an older index backup without reverting repaired `updated_at`
 - workspace-scoped `updated_at` promotion on macOS to re-surface older threads in the sidebar
 - dry-run repair tooling that reports and skips malformed session JSONL files instead of aborting
+- metadata-only thread search by cwd/sidebar name/title against sqlite and `session_index.jsonl` on macOS
+- direct same-home rebind dry-run for a known macOS thread id, including `thread_name` preservation and sidebar-promotion planning
+- malformed-session diagnosis on a real macOS home with structured file paths and JSONL line numbers
+- Codex Desktop may refresh repaired sidebar entries before a full restart; current docs now instruct operators to check the sidebar first
 
 ## Not Yet Verified
 
@@ -120,6 +124,10 @@ This repository intentionally avoids stronger claims than the evidence supports.
 - 在不回退已修复 `updated_at` 的前提下，从旧 index 备份恢复侧栏备注名
 - macOS 上按工作区提升 `updated_at`，让较旧线程重新进入侧栏
 - dry-run 修复脚本在遇到损坏 session JSONL 文件时会报告并跳过，而不是直接中断
+- macOS 上通过 sqlite 和 `session_index.jsonl` 进行基于 cwd、侧栏名、标题的元数据级线程搜索
+- 已知 macOS 线程 id 的同机直接重绑 dry-run，包括保留 `thread_name` 与规划侧栏提升
+- 在真实 macOS home 上诊断损坏 session 文件，并结构化报告文件路径和 JSONL 行号
+- Codex 桌面端可能在完整重启前就刷新出修复后的侧栏条目；当前文档已改为提示操作者先检查侧栏
 
 ## 尚未验证
 
