@@ -1,6 +1,6 @@
 ---
 name: codex-session-migration
-description: Migrate, merge, copy, or rebind Codex conversation history between CODEX_HOME directories across Windows, WSL, and Linux. Use when Codex threads need to be moved between hosts, restored from another .codex directory, merged into a desktop history, reclassified under a different workspace path, or verified across sessions, session_index.jsonl, and state_5.sqlite.
+description: Migrate, merge, copy, clone, repair, or rebind Codex conversation history between CODEX_HOME directories and workspace paths across Windows, WSL, and Linux. Use when Codex threads need to be moved between hosts, restored from another .codex directory, merged into a desktop history, reclassified under a different cwd, recovered after disappearing from the sidebar or recent-thread window, repaired through session_index.jsonl/state_5.sqlite synchronization, or verified across sessions, session_index.jsonl, and state_5.sqlite.
 ---
 
 # Codex Session Migration
@@ -114,6 +114,12 @@ After a successful same-home migrate, archive the old source thread with:
 
 ```bash
 python scripts/archive_thread.py --home "<codex-home>" --thread-id "<source-thread-id>" --execute
+```
+
+If the user explicitly wants a second active copy of one existing thread under a new thread id and workspace path, use:
+
+```bash
+python scripts/clone_thread.py --home "<codex-home>" --source-thread-id "<source-thread-id>" --target-cwd "<target-workspace-cwd>" --execute
 ```
 
 ## Bundle Transfer Workflow
@@ -235,6 +241,7 @@ python scripts/generate_cleanup_prompt.py --thread-id "<thread-id>" --target-cwd
 - For cross-device transfer, prefer generating the target import prompt on the source machine and the cleanup prompt on the target machine.
 - Do not delete rollback-capable backups automatically unless the user explicitly asks for aggressive cleanup.
 - For same-home relocation, default to `keep-source` for copy and `archive-source` for migrate unless the user explicitly asks for a different retirement policy.
+- When adding or changing supported workflows in this skill, update the frontmatter `description`, `agents/openai.yaml`, and relevant repo-level user docs before declaring the update complete.
 
 ## References
 
@@ -271,5 +278,6 @@ Open only what is needed:
 - `scripts/generate_target_import_prompt.py`
 - `scripts/generate_cleanup_prompt.py`
 - `scripts/archive_thread.py`
+- `scripts/clone_thread.py`
 
 Use the scripts instead of rewriting migration logic in the prompt.

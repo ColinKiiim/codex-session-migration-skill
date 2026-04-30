@@ -15,6 +15,7 @@ It supports more than moving threads across different `CODEX_HOME` directories. 
 - repairing sidebar invisibility caused by `session_index.jsonl` drift
 - preserving sidebar remark names stored in `session_index.jsonl -> thread_name`
 - metadata-only recency promotion to re-surface older workspace threads in the sidebar
+- cloning one existing thread into a second active thread under a new workspace path
 - single-thread bundle export and import for cross-device transfer
 - source-side handoff prompt generation and target-side cleanup prompt generation
 - same-home migrate with source-thread archiving after the new target thread is verified
@@ -111,6 +112,7 @@ The practical repair boundary is:
 - 修复由 `session_index.jsonl` 漂移导致的侧栏线程不可见
 - 保留 `session_index.jsonl -> thread_name` 中的侧栏备注名
 - 通过只改元数据的 `updated_at` 提升，让较旧工作区重新出现在侧栏中
+- 将一条已有线程克隆成另一条新 id 的活跃线程，并绑定到新的工作目录
 - 面向跨设备转移的单线程 bundle 导出与导入
 - 源机器生成交接 prompt，目标机器在成功导入后生成清理 prompt
 

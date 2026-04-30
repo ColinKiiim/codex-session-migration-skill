@@ -148,6 +148,8 @@ This skill supports:
 - migration between different `CODEX_HOME` directories
 - rebind-only fixes inside one existing `CODEX_HOME`
 - workspace-path repair after folder rename or move
+- sidebar recovery for hidden threads caused by `session_index.jsonl` drift or old `updated_at`
+- cloning one thread into a second active thread under a new workspace path
 - bundle-based cross-device transfer
 
 ## Sidebar Repair Inside One Existing `CODEX_HOME`
@@ -270,6 +272,8 @@ skill 路径：
 - 不同 `CODEX_HOME` 目录之间的迁移
 - 同一个 `CODEX_HOME` 内的只重绑修复
 - 工作区文件夹改名或移动后的路径修复
+- 修复由 `session_index.jsonl` 漂移或旧 `updated_at` 导致的侧栏隐藏线程
+- 将一条线程克隆成另一条新 id 的活跃线程，并绑定到新的工作目录
 - 基于 bundle 的跨设备线程转移
 
 ## 同一个 `CODEX_HOME` 内的侧栏修复
