@@ -7,6 +7,8 @@ This skill treats a Codex home as a directory that usually contains:
 - optional `archived_sessions/`
 - optional `state_5.sqlite`
 
+One machine can have more than one local Codex home. For example, a main Codex Desktop home may live at `~/.codex`, while a newly opened Antigravity/Codex instance can write to `.antigravity_cockpit/instances/codex/<instance-id>`.
+
 For cross-device bundle transfer, this skill also uses a portable bundle zip that contains:
 
 - `manifest.json`
@@ -82,6 +84,8 @@ A reliable migration usually needs all three layers to agree on:
 If session files and index are copied but sqlite is not synchronized, the target app may still group the thread under the wrong workspace or fail to surface it until later.
 
 Malformed or truncated session JSONL files are not necessarily evidence that every thread is unusable. Metadata-only operations can still use `session_index.jsonl` and sqlite rows to resolve unrelated thread ids, repair index drift, or report the bad file list for separate recovery.
+
+If the main home has no matching id, cwd, title, or raw session text, but an alternate local home contains the thread, treat it as cross-home copy-selected import. Same-home rebind and recency promotion only make sense after the target home already contains the thread.
 
 ## Bundle Consequence
 

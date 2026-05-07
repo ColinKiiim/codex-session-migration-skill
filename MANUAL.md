@@ -146,14 +146,62 @@ Use this prompt if the repository has already been downloaded to the target mach
 This skill supports:
 
 - migration between different `CODEX_HOME` directories
+- alternate local Codex home import from Antigravity/Codex instance directories into the main `~/.codex`
 - rebind-only fixes inside one existing `CODEX_HOME`
 - workspace-path repair after folder rename or move
+- batch path-prefix repair after a parent workspace folder rename or path drift
 - sidebar recovery for hidden threads caused by `session_index.jsonl` drift or old `updated_at`
 - metadata-only search by thread id, title, sidebar remark, cwd, or first-message fragment
 - malformed-session diagnosis that does not block unrelated repairs
 - direct same-home multi-thread rebind with sidebar promotion
 - cloning one thread into a second active thread under a new workspace path
 - bundle-based cross-device transfer
+
+## Alternate Local Codex Home / Antigravity Instance Import
+
+Use this workflow when the user says a conversation created in a new Codex-like instance or Antigravity instance does not appear in the main Codex Desktop sidebar.
+
+### Confirmed Practical Lessons
+
+- A healthy main `~/.codex` can still have no trace of the target thread.
+- Antigravity/Codex instance directories may be independent Codex homes with their own `sessions/`, `session_index.jsonl`, and `state_5.sqlite`.
+- If the thread exists only in the instance home, the repair is `copy-selected` from that home into main `~/.codex`.
+- Do not use `rebind_threads.py` or `bump_workspace_updated_at.py` when the main home does not contain the thread.
+- If the main home already has the same id, stop and decide whether to skip, replace, or clone; do not overwrite by default.
+
+### Example Commands
+
+```bash
+python scripts/search_thread_index.py --home "~/.codex" --query "/absolute/workspace/path" --format json
+python scripts/inspect_codex_home.py --home "~/.codex"
+python scripts/inspect_codex_home.py --home "~/.antigravity_cockpit/instances/codex/<instance-id>"
+python scripts/search_thread_index.py --home "~/.antigravity_cockpit/instances/codex/<instance-id>" --query "/absolute/workspace/path" --format json
+python scripts/search_thread_index.py --home "~/.codex" --query "<thread-id>" --format json
+```
+
+Use `copy-selected` when the id is absent from the main home:
+
+```json
+{
+  "source_home": "~/.antigravity_cockpit/instances/codex/<instance-id>",
+  "target_home": "~/.codex",
+  "mode": "copy-selected",
+  "include_archived": false,
+  "thread_ids": ["<thread-id>"],
+  "path_rules": [],
+  "update_sqlite": true,
+  "backup_label": "<short-label>"
+}
+```
+
+```bash
+python scripts/plan_migration.py --spec spec.json --output plan.json
+python scripts/migrate_threads.py --plan plan.json --execute
+python scripts/verify_migration.py --plan plan.json
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/workspace/path" --thread-id "<thread-id>"
+```
+
+After verification, check the main Codex sidebar first. Fully restart Codex only if the sidebar does not refresh.
 
 ## Sidebar Repair Inside One Existing `CODEX_HOME`
 
@@ -197,6 +245,15 @@ python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --t
 python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/workspace/path" --promote-to-sidebar --execute
 python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/workspace/path" --thread-id "<thread-id>"
 ```
+
+For a parent folder rename that affects many workspace groups, use the prefix workflow instead of manually collecting thread ids:
+
+```bash
+python scripts/rebind_path_prefix.py --home "~/.codex" --map "/old/root=/new/root" --include-archived --promote-to-sidebar --require-target-exists
+python scripts/rebind_path_prefix.py --home "~/.codex" --map "/old/root=/new/root" --include-archived --promote-to-sidebar --require-target-exists --execute
+```
+
+Pass repeated `--map OLD=NEW` values if the rename maps multiple subtrees. The script preserves sidebar names, updates sqlite, updates parseable session metadata, preserves malformed JSONL lines, and promotes recency for sidebar visibility.
 
 ## Validation Boundary
 
@@ -284,14 +341,62 @@ skill 路径：
 这个 skill 支持：
 
 - 不同 `CODEX_HOME` 目录之间的迁移
+- 从 Antigravity/Codex 实例目录等本机 alternate Codex home 导入线程到主 `~/.codex`
 - 同一个 `CODEX_HOME` 内的只重绑修复
 - 工作区文件夹改名或移动后的路径修复
+- 父级工作区目录改名或路径漂移后的批量前缀修复
 - 修复由 `session_index.jsonl` 漂移或旧 `updated_at` 导致的侧栏隐藏线程
 - 通过线程 id、标题、侧栏备注名、cwd 或首条消息片段做元数据级搜索
 - 诊断损坏的 session 文件，同时不阻塞无关线程的修复
 - 同一个 home 内多线程直接重绑，并可同时提升侧栏可见性
 - 将一条线程克隆成另一条新 id 的活跃线程，并绑定到新的工作目录
 - 基于 bundle 的跨设备线程转移
+
+## 本机 Alternate Codex Home / Antigravity 实例导入
+
+如果用户说新开 Codex-like 实例或 Antigravity 实例里创建的对话没有出现在主 Codex Desktop 侧栏，使用这个流程。
+
+### 已确认的实践结论
+
+- 主 `~/.codex` 三层结构正常，也可能完全没有目标线程。
+- Antigravity/Codex 实例目录可能是独立 Codex home，拥有自己的 `sessions/`、`session_index.jsonl` 和 `state_5.sqlite`。
+- 如果线程只存在于实例 home，正确修复是从实例 home `copy-selected` 到主 `~/.codex`。
+- 当主 home 不含这条线程时，不要用 `rebind_threads.py`，也不要用 `bump_workspace_updated_at.py`。
+- 如果主 home 已经有同 id，先停下来判断是 skip、replace 还是 clone；默认不要覆盖。
+
+### 示例命令
+
+```bash
+python scripts/search_thread_index.py --home "~/.codex" --query "/absolute/workspace/path" --format json
+python scripts/inspect_codex_home.py --home "~/.codex"
+python scripts/inspect_codex_home.py --home "~/.antigravity_cockpit/instances/codex/<instance-id>"
+python scripts/search_thread_index.py --home "~/.antigravity_cockpit/instances/codex/<instance-id>" --query "/absolute/workspace/path" --format json
+python scripts/search_thread_index.py --home "~/.codex" --query "<thread-id>" --format json
+```
+
+当主 home 中没有这个 id 时，使用 `copy-selected`：
+
+```json
+{
+  "source_home": "~/.antigravity_cockpit/instances/codex/<instance-id>",
+  "target_home": "~/.codex",
+  "mode": "copy-selected",
+  "include_archived": false,
+  "thread_ids": ["<thread-id>"],
+  "path_rules": [],
+  "update_sqlite": true,
+  "backup_label": "<short-label>"
+}
+```
+
+```bash
+python scripts/plan_migration.py --spec spec.json --output plan.json
+python scripts/migrate_threads.py --plan plan.json --execute
+python scripts/verify_migration.py --plan plan.json
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/workspace/path" --thread-id "<thread-id>"
+```
+
+验证后先看主 Codex 侧栏。如果侧栏没有刷新，再完整重启 Codex。
 
 ## 同一个 `CODEX_HOME` 内的侧栏修复
 
@@ -304,6 +409,7 @@ skill 路径：
 - 如果你直接用 sqlite `title` 重建 index，而不保留 `thread_name`，就可能把用户原来的短备注名全部覆盖掉。
 - 有些“这个工作区下面没有线程”其实是 recent-thread 窗口问题：线程还在，但 `updated_at` 太旧，暂时不显示。
 - 少量损坏的 JSONL session 文件不应该让整个修复流程中断。好的修复脚本应该把它们报告出来并跳过。
+- 如果父目录改名导致多个工作区同时变灰或显示暂无对话，优先用 `rebind_path_prefix.py`，不要手工逐个收集线程 id。
 
 ### 建议顺序
 
@@ -314,7 +420,8 @@ skill 路径：
 5. 先直接看 Codex 侧栏。新版桌面端可能不需要完整重启就刷新出修复后的线程。
 6. 如果工作区分组看起来仍然是空的，再先用 `bump_workspace_updated_at.py --limit 5` 做一个小范围测试。
 7. 只有小测试成功后，再提升整个工作区。
-8. 如果元数据修复或提升后侧栏仍未出现，再完整重启 Codex。
+8. 如果是父目录整体改名或路径前缀漂移，用 `rebind_path_prefix.py` 批量同步 session、sqlite 和 index。
+9. 如果元数据修复或提升后侧栏仍未出现，再完整重启 Codex。
 
 ### 示例命令
 
@@ -335,6 +442,15 @@ python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --t
 python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/workspace/path" --promote-to-sidebar --execute
 python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/workspace/path" --thread-id "<thread-id>"
 ```
+
+如果父级目录改名影响了多个工作区分组，用前缀修复流程：
+
+```bash
+python scripts/rebind_path_prefix.py --home "~/.codex" --map "/old/root=/new/root" --include-archived --promote-to-sidebar --require-target-exists
+python scripts/rebind_path_prefix.py --home "~/.codex" --map "/old/root=/new/root" --include-archived --promote-to-sidebar --require-target-exists --execute
+```
+
+如果一次改名涉及多个子树，可以重复传入 `--map OLD=NEW`。这个脚本会保留侧栏备注名，更新 sqlite，更新可解析的 session 元数据，保留损坏 JSONL 行，并提升 `updated_at` 以便侧栏重新显示。
 
 ## 验证边界
 

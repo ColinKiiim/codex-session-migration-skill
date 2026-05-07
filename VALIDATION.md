@@ -2,7 +2,7 @@
 
 Chinese version below.
 
-Updated: 2026-04-30
+Updated: 2026-05-07
 
 ## English
 
@@ -44,6 +44,7 @@ Updated: 2026-04-30
 - checksum failure on a tampered bundle
 - workspace-path rebinding and SQLite synchronization
 - recovery from workspace rename and path drift on Windows
+- macOS same-home batch path-prefix rebind after parent folder rename, including malformed JSONL metadata-only fallback
 - same-home migrate with source-thread archive on Windows
 - macOS same-home diagnosis of sidebar invisibility across session files, `session_index.jsonl`, and sqlite
 - repair of `session_index.jsonl` drift with missing ids plus duplicate ids
@@ -53,6 +54,7 @@ Updated: 2026-04-30
 - metadata-only thread search by cwd/sidebar name/title against sqlite and `session_index.jsonl` on macOS
 - direct same-home rebind dry-run for a known macOS thread id, including `thread_name` preservation and sidebar-promotion planning
 - malformed-session diagnosis on a real macOS home with structured file paths and JSONL line numbers
+- macOS Antigravity/Codex instance home -> main `~/.codex` single-thread `copy-selected` import, with `verify_migration.py` and `verify_thread_binding.py` both ok
 - Codex Desktop may refresh repaired sidebar entries before a full restart; current docs now instruct operators to check the sidebar first
 
 ## Not Yet Verified
@@ -119,6 +121,7 @@ This repository intentionally avoids stronger claims than the evidence supports.
 - 被篡改 bundle 的校验失败检测
 - 工作区路径重绑与 SQLite 同步
 - Windows 上因工作区改名导致的路径漂移恢复
+- macOS 上父目录改名后的同机批量路径前缀重绑，包括损坏 JSONL 的元数据级兜底
 - macOS 上基于 session 文件、`session_index.jsonl` 和 sqlite 的同机侧栏不可见诊断
 - 对缺 id 且有重复 id 的 `session_index.jsonl` 漂移修复
 - 在不回退已修复 `updated_at` 的前提下，从旧 index 备份恢复侧栏备注名
@@ -127,6 +130,7 @@ This repository intentionally avoids stronger claims than the evidence supports.
 - macOS 上通过 sqlite 和 `session_index.jsonl` 进行基于 cwd、侧栏名、标题的元数据级线程搜索
 - 已知 macOS 线程 id 的同机直接重绑 dry-run，包括保留 `thread_name` 与规划侧栏提升
 - 在真实 macOS home 上诊断损坏 session 文件，并结构化报告文件路径和 JSONL 行号
+- macOS 上 Antigravity/Codex 实例 home 到主 `~/.codex` 的单线程 `copy-selected` 导入，`verify_migration.py` 和 `verify_thread_binding.py` 均通过
 - Codex 桌面端可能在完整重启前就刷新出修复后的侧栏条目；当前文档已改为提示操作者先检查侧栏
 
 ## 尚未验证

@@ -1,6 +1,6 @@
 ---
 name: codex-session-migration
-description: Migrate, merge, copy, clone, repair, diagnose, or rebind Codex conversation history between CODEX_HOME directories and workspace paths across Windows, macOS, WSL, and Linux. Use when Codex threads need to be moved between hosts, restored from another .codex directory, merged into a desktop history, searched by id/title/cwd/index name, reclassified under a different cwd, recovered after disappearing from the sidebar or recent-thread window, diagnosed despite malformed or truncated session JSONL files, repaired through session_index.jsonl/state_5.sqlite synchronization, or verified across sessions, session_index.jsonl, and state_5.sqlite.
+description: Migrate, merge, copy, clone, repair, diagnose, or rebind Codex conversation history between CODEX_HOME directories and workspace paths across Windows, macOS, WSL, and Linux. Use when Codex threads need to be moved between hosts, restored from another .codex directory, imported or recovered from alternate local Codex homes such as Antigravity/Codex instance directories, merged into a desktop history, searched by id/title/cwd/index name, reclassified under a different cwd, recovered after workspace folder rename or path-prefix drift, recovered after disappearing from the sidebar or recent-thread window, diagnosed despite malformed or truncated session JSONL files, repaired through session_index.jsonl/state_5.sqlite synchronization, or verified across sessions, session_index.jsonl, and state_5.sqlite.
 ---
 
 # Codex Session Migration
@@ -58,6 +58,57 @@ Verification:
 python scripts/verify_migration.py --plan plan.json
 ```
 
+## Alternate Local Codex Home / Antigravity Instance Workflow
+
+Use this when a thread from a newly opened Codex-like instance, Antigravity instance, or other local instance home does not appear in the main Codex Desktop sidebar.
+
+Do not assume this is a recent-window problem in the main `~/.codex`. First prove whether the thread exists in the main home at all:
+
+```bash
+python scripts/search_thread_index.py --home "~/.codex" --query "<workspace-cwd-or-title>" --format json
+python scripts/inspect_codex_home.py --home "~/.codex"
+```
+
+If the main home has no match, ask for or locate the alternate instance home. Common Antigravity/Codex instance homes look like:
+
+```text
+/Users/<user>/.antigravity_cockpit/instances/codex/<instance-id>
+```
+
+Confirm the alternate path is a Codex home by inspecting it. It should contain `sessions/`, `session_index.jsonl`, and usually `state_5.sqlite`:
+
+```bash
+python scripts/inspect_codex_home.py --home "<alternate-codex-home>"
+python scripts/search_thread_index.py --home "<alternate-codex-home>" --query "<workspace-cwd-or-title>" --format json
+```
+
+If the thread exists in the alternate home and the same id is absent from the main home, migrate it with `copy-selected` from the alternate home into `~/.codex`:
+
+```json
+{
+  "source_home": "<alternate-codex-home>",
+  "target_home": "~/.codex",
+  "mode": "copy-selected",
+  "include_archived": false,
+  "thread_ids": ["<thread-id>"],
+  "path_rules": [],
+  "update_sqlite": true,
+  "backup_label": "<short-label>"
+}
+```
+
+```bash
+python scripts/plan_migration.py --spec spec.json --output plan.json
+python scripts/migrate_threads.py --plan plan.json --execute
+python scripts/verify_migration.py --plan plan.json
+python scripts/search_thread_index.py --home "~/.codex" --query "<thread-id>" --format json
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "<workspace-cwd>" --thread-id "<thread-id>"
+```
+
+If the main home already contains the same id, stop and decide whether the user wants to skip, replace, or clone under a new id. Do not overwrite by default.
+
+Do not use `rebind_threads.py` when the thread is not present in the main home. Do not use `bump_workspace_updated_at.py` when the main home has no matching thread; there is nothing in the main sidebar metadata to promote.
+
 ## Rebind-Only Workflow
 
 Use rebind-only when the thread data is already in the target home and only the workspace grouping is wrong.
@@ -85,6 +136,34 @@ If you need to adjust `cwd` without a full migration, use:
 ```bash
 python scripts/rewrite_cwd.py --home "<target-codex-home>" --spec rebind-spec.json --thread-id "<thread-id>"
 python scripts/sync_sqlite_threads.py --home "<target-codex-home>" --spec rebind-spec.json --thread-id "<thread-id>" --execute
+```
+
+## Workspace Rename / Path-Prefix Drift Workflow
+
+Use this when a folder was renamed or moved and several workspace groups turn gray or show "no conversations" even after the project is re-added. This is a same-home metadata repair, not a cross-home migration.
+
+First inspect the old prefix and confirm mapped target directories exist:
+
+```bash
+python scripts/search_thread_index.py --home "<codex-home>" --query "<old-path-prefix>" --format json
+```
+
+Then dry-run a prefix rebind. Pass multiple `--map OLD=NEW` values when one user-facing rename affects more than one subtree:
+
+```bash
+python scripts/rebind_path_prefix.py --home "<codex-home>" --map "<old-prefix>=<new-prefix>" --include-archived --promote-to-sidebar --require-target-exists
+python scripts/rebind_path_prefix.py --home "<codex-home>" --map "<old-prefix>=<new-prefix>" --include-archived --promote-to-sidebar --require-target-exists --execute
+```
+
+The script selects sqlite `threads.cwd` rows under the old prefix, rewrites `session_meta.cwd`, `turn_context.cwd`, and `turn_context.sandbox_policy` path strings where the session file can be parsed, falls back to line-by-line metadata rewriting for malformed JSONL, preserves `session_index.jsonl -> thread_name`, updates sqlite, and promotes recency for sidebar visibility. It preserves malformed JSONL lines instead of trying to repair conversation content.
+
+Example for a macOS home folder rename:
+
+```bash
+python scripts/rebind_path_prefix.py --home "~/.codex" \
+  --map "/Users/name/OldRoot/开发=/Users/name/NewRoot/Develop" \
+  --map "/Users/name/OldRoot/NUS=/Users/name/NewRoot/NUS" \
+  --include-archived --promote-to-sidebar --require-target-exists
 ```
 
 ## Sidebar Recovery Workflow
@@ -171,7 +250,9 @@ When you use this skill in a conversation, do these things explicitly:
 14. If all three layers already contain the thread but the sidebar workspace group still says "no threads", consider recent-thread window behavior before concluding the data is gone.
 15. If raw session parsing fails because one or more JSONL files are malformed, use `search_thread_index.py` for metadata-only lookup and `diagnose_sessions.py` for the malformed-file list. Do not abandon unrelated repair work just because a different session file is truncated.
 16. For same-home rebind of known ids, prefer `rebind_threads.py` over hand-chaining `rewrite_cwd.py` and `sync_sqlite_threads.py`; it preserves sidebar names, updates sqlite, and can promote recency in one reviewed dry-run.
-17. After metadata-only sidebar recovery, tell the user to check the sidebar first. If the thread is still missing, then ask them to fully restart Codex.
+17. For whole-folder renames or path-prefix drift, prefer `rebind_path_prefix.py` over manually collecting thread ids. Use dry-run first, include archived threads only when appropriate, and use `--require-target-exists` for same-machine path repairs.
+18. If a thread from a new Antigravity/Codex instance is missing from the main Codex sidebar, search both homes. If the main home has no match but the instance home does, treat it as an alternate-local-home `copy-selected` import into `~/.codex`, not as rebind or recency promotion.
+19. After metadata-only sidebar recovery or alternate-home import, tell the user to check the sidebar first. If the thread is still missing, then ask them to fully restart Codex.
 
 When the user gives a thread title or fragment rather than a thread id, prefer:
 
@@ -270,6 +351,7 @@ Open only what is needed:
 - Path mapping rules: `references/path-mapping.md`
 - SQLite behavior: `references/sqlite-notes.md`
 - Sidebar recovery: `references/sidebar-recovery.md`
+- Alternate local homes: `references/alternate-local-home.md`
 - Validation coverage: `references/test-matrix.md`
 
 ## Scripts
@@ -285,6 +367,7 @@ Open only what is needed:
 - `scripts/plan_migration.py`
 - `scripts/migrate_threads.py`
 - `scripts/rebind_threads.py`
+- `scripts/rebind_path_prefix.py`
 - `scripts/rewrite_cwd.py`
 - `scripts/sync_sqlite_threads.py`
 - `scripts/bump_workspace_updated_at.py`

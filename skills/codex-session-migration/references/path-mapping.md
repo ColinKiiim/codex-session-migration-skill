@@ -60,6 +60,23 @@ This avoids ambiguous rewrites.
 
 ## Common Examples
 
+### Same-machine workspace rename
+
+Use `rebind_path_prefix.py` when a workspace root was renamed or moved inside the same `CODEX_HOME` and multiple sidebar groups now point at stale `cwd` values.
+
+Dry-run first:
+
+```bash
+python scripts/rebind_path_prefix.py --home "~/.codex" \
+  --map "/Users/alice/OldRoot/开发=/Users/alice/NewRoot/Develop" \
+  --map "/Users/alice/OldRoot/NUS=/Users/alice/NewRoot/NUS" \
+  --include-archived --promote-to-sidebar --require-target-exists
+```
+
+Then execute the same command with `--execute`.
+
+This script updates sqlite `threads.cwd`, `session_index.jsonl` recency, `session_meta.cwd`, `turn_context.cwd`, and nested `turn_context.sandbox_policy` path strings. If a session JSONL file is malformed, it rewrites only parseable metadata lines and preserves malformed lines unchanged.
+
 ### WSL mount to Windows
 
 ```json

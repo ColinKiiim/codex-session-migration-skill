@@ -4,6 +4,8 @@ Use this note when Codex threads appear to be "missing" from the left sidebar ev
 
 ## Confirmed Failure Modes
 
+Before choosing a same-home sidebar repair, prove the main home actually contains the thread. If `~/.codex` has no match by id, cwd, title, or raw session text, but an alternate local instance home contains the thread, switch to `references/alternate-local-home.md`.
+
 ### 1. `session_index.jsonl` drift
 
 Observed repair case:
@@ -60,7 +62,22 @@ Practical consequence:
 - keep the skipped file list in the report so the operator can decide whether those specific threads need separate recovery
 - use metadata-only search when a title/cwd lookup should not depend on parsing every session JSONL body
 
-### 5. Desktop sidebar live refresh
+### 5. Workspace rename or path-prefix drift
+
+Observed repair case:
+
+- several workspace groups appeared gray or empty after the user renamed a parent folder
+- sqlite still had active `threads.cwd` values under the old path prefix
+- some affected session JSONL files were malformed and could not be handled by strict full-file rebind
+
+Practical consequence:
+
+- use `rebind_path_prefix.py` for whole-prefix repairs instead of manually collecting every thread id
+- dry-run with `--require-target-exists` when the new paths are local and should exist
+- preserve malformed session lines and rewrite only parseable metadata for those files
+- still promote `updated_at` when the user cares about left-sidebar visibility
+
+### 6. Desktop sidebar live refresh
 
 Observed repair case:
 
@@ -81,7 +98,8 @@ Practical consequence:
 5. Check the sidebar. If it did not refresh, fully restart Codex and check again.
 6. If the workspace group still looks empty even though the threads now exist in all three layers, test `bump_workspace_updated_at.py --limit 5`.
 7. If the small test works, repeat without `--limit` for the whole workspace.
-8. If the report lists malformed session files, treat them as a separate recovery problem instead of mixing them into the same index rewrite.
+8. If a parent folder was renamed or moved, use `rebind_path_prefix.py` to update all stale cwd prefixes together.
+9. If the report lists malformed session files, treat full content recovery as a separate problem; metadata-only prefix rebind can still repair sidebar grouping.
 
 ## Example Commands
 
@@ -113,6 +131,13 @@ Promote the whole workspace after the small test succeeds:
 
 ```bash
 python scripts/bump_workspace_updated_at.py --home "~/.codex" --cwd "/absolute/workspace/path" --execute
+```
+
+Repair a renamed parent path across multiple workspace groups:
+
+```bash
+python scripts/rebind_path_prefix.py --home "~/.codex" --map "/old/root=/new/root" --include-archived --promote-to-sidebar --require-target-exists
+python scripts/rebind_path_prefix.py --home "~/.codex" --map "/old/root=/new/root" --include-archived --promote-to-sidebar --require-target-exists --execute
 ```
 
 ## Safety Rules
