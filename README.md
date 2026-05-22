@@ -12,6 +12,7 @@ It supports more than moving threads across different `CODEX_HOME` directories. 
 
 - rebinding threads to a new workspace path inside the same `CODEX_HOME`
 - importing threads from alternate local Codex homes such as Antigravity/Codex instance directories into the main `~/.codex`
+- moving projectless/new-chat conversations into real project folders inside the same `CODEX_HOME`
 - repairing threads that disappear after a workspace folder is renamed or moved
 - batch-repairing stale workspace path prefixes after parent-folder rename/path drift
 - repairing sidebar invisibility caused by `session_index.jsonl` drift
@@ -70,6 +71,10 @@ Some local Codex-like instances may write threads to their own Codex home instea
 
 If the main sidebar cannot find a new instance conversation and the main `~/.codex` has no matching id, cwd, or title, search the instance home. When the thread exists only in the instance home, use `copy-selected` from that source home into the main `~/.codex`. Do not use same-home rebind or `updated_at` promotion when the main home does not contain the thread.
 
+## Projectless Conversations
+
+New generic conversations can be stored in the main `~/.codex` with cwd values under `~/Documents/Codex/<date>/new-chat` or another generated folder. To move one of these conversations into a real project folder, use same-home `rebind_threads.py` with `--promote-to-sidebar`. If `session_index.jsonl` is missing the id but sqlite and the session file exist, the rebind can create the index row using the sqlite title. Newer sqlite schemas may mark projectless conversations with `thread_source = "user"`; the rebind normalizes that value to `NULL` when moving the conversation into a project workspace.
+
 ## Sidebar Recovery
 
 This repository now also covers a same-home repair class that is easy to misdiagnose as "thread loss":
@@ -98,6 +103,7 @@ The practical repair boundary is:
 
 - 在同一个 `CODEX_HOME` 中，把线程重绑到新的工作目录
 - 从 Antigravity/Codex 实例目录等本机 alternate Codex home 导入线程到主 `~/.codex`
+- 把 projectless/new-chat 的普通“对话”移动到真实项目文件夹
 - 在工作区文件夹改名或移动后，修复“消失”的线程
 - 在父目录改名或路径漂移后，批量修复仍指向旧前缀的工作区线程
 - 修复由 `session_index.jsonl` 漂移导致的侧栏线程不可见
@@ -154,6 +160,10 @@ The practical repair boundary is:
 - `~/.antigravity_cockpit/instances/codex/<instance-id>`
 
 如果主侧栏找不到一个新开实例里的对话，而且主 `~/.codex` 里按 id、cwd、标题都查不到，就应该继续查实例 home。只要线程只存在于实例 home，就用 `copy-selected` 从实例 home 导入到主 `~/.codex`。当主 home 根本没有这条线程时，不要使用同机 rebind，也不要只提升 `updated_at`。
+
+## Projectless 普通对话
+
+新建的普通“对话”可能已经在主 `~/.codex` 里，但 cwd 指向 `~/Documents/Codex/<日期>/new-chat` 或其他自动生成目录。要把这种对话移动到真实项目文件夹，使用同机 `rebind_threads.py --promote-to-sidebar`。如果 `session_index.jsonl` 暂时没有这个 id，但 sqlite 和 session 文件存在，rebind 可以用 sqlite title 创建 index 行。新版 sqlite 可能会给普通“对话”写入 `thread_source = "user"`；移动到项目工作区时，rebind 会把它归一化为 `NULL`。
 
 ## 侧栏恢复
 

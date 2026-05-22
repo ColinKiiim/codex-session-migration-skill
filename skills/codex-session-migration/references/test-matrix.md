@@ -20,6 +20,7 @@ Use this matrix when validating the skill.
 - alternate local Codex home copy-selected import
 - replace-selected
 - rebind-only
+- projectless/new-chat same-home rebind into a project folder
 - single-thread bundle export
 - single-thread bundle import
 - transfer-package handoff
@@ -43,6 +44,7 @@ Use this matrix when validating the skill.
 - thread with missing sqlite row
 - thread with duplicate index entries
 - thread visible in data layers but not visible in the recent sidebar window
+- projectless thread with sqlite/session file records but missing `session_index` row
 - malformed or truncated JSONL session file
 - valid target thread in a home that also contains unrelated malformed session files
 - thread absent from main home but present in an alternate local instance home
@@ -51,6 +53,8 @@ Use this matrix when validating the skill.
 ## Path Cases
 
 - `.antigravity_cockpit/instances/codex/<instance-id>` source home
+- `Documents/Codex/<date>/new-chat` generated cwd
+- projectless sqlite `thread_source = "user"` row moved into a project workspace and normalized to `NULL`
 - Windows drive path
 - `/mnt/<drive>/...`
 - WSL UNC path
@@ -78,6 +82,8 @@ Use this matrix when validating the skill.
 - malformed session files are reported as warnings with file paths and JSONL line numbers
 - direct rebind preserves `session_index.jsonl -> thread_name`
 - direct rebind updates JSONL cwd and sqlite cwd for every selected thread
+- projectless-to-workspace rebind creates a missing index row from sqlite title
+- projectless-to-workspace rebind verifies session file, session index, sqlite row, and target cwd
 - path-prefix rebind updates sqlite cwd, session metadata cwd, nested sandbox writable roots, and session_index recency
 - path-prefix rebind preserves malformed JSONL lines and still repairs parseable metadata
 - alternate-home import first proves the main home has no matching id before copy-selected

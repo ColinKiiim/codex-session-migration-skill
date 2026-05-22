@@ -147,6 +147,7 @@ This skill supports:
 
 - migration between different `CODEX_HOME` directories
 - alternate local Codex home import from Antigravity/Codex instance directories into the main `~/.codex`
+- projectless/new-chat conversation rebind into a real project folder
 - rebind-only fixes inside one existing `CODEX_HOME`
 - workspace-path repair after folder rename or move
 - batch path-prefix repair after a parent workspace folder rename or path drift
@@ -202,6 +203,30 @@ python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/works
 ```
 
 After verification, check the main Codex sidebar first. Fully restart Codex only if the sidebar does not refresh.
+
+## Projectless / New-Chat Conversation To Project Folder
+
+Use this workflow when the user wants to move a normal conversation from the generic conversation box into a project folder.
+
+### Confirmed Practical Lessons
+
+- The thread can already be in the main `~/.codex` while its cwd is still a generated folder under `Documents/Codex/<date>/new-chat`.
+- A projectless thread can have sqlite and session file records before it has a `session_index.jsonl` row.
+- Newer sqlite schemas can mark generic conversation-box rows with `thread_source = "user"`. When moving that row into a real project workspace, normalize it to `NULL`; keep non-user values such as `subagent`.
+- This is a same-home rebind, not alternate-home import and not clone.
+- `rebind_threads.py` can create the missing index row from the sqlite title while moving the cwd.
+
+### Example Commands
+
+```bash
+python scripts/search_thread_index.py --home "~/.codex" --query "<title-or-generated-cwd>" --format json
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/project/path" --promote-to-sidebar
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/project/path" --promote-to-sidebar --execute
+python scripts/search_thread_index.py --home "~/.codex" --query "<thread-id>" --format json
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/project/path" --thread-id "<thread-id>"
+```
+
+If the title is generic, for example `test`, choose the intended thread by `cwd` and `updated_at` before executing. If the sidebar still does not show the thread after a successful rebind, check that sqlite `thread_source` is now `NULL`. After verification, check the project in the sidebar first; restart Codex only if needed.
 
 ## Sidebar Repair Inside One Existing `CODEX_HOME`
 
@@ -342,6 +367,7 @@ skill 路径：
 
 - 不同 `CODEX_HOME` 目录之间的迁移
 - 从 Antigravity/Codex 实例目录等本机 alternate Codex home 导入线程到主 `~/.codex`
+- 将 projectless/new-chat 普通对话重绑到真实项目文件夹
 - 同一个 `CODEX_HOME` 内的只重绑修复
 - 工作区文件夹改名或移动后的路径修复
 - 父级工作区目录改名或路径漂移后的批量前缀修复
@@ -397,6 +423,30 @@ python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/works
 ```
 
 验证后先看主 Codex 侧栏。如果侧栏没有刷新，再完整重启 Codex。
+
+## Projectless / New-Chat 普通对话移动到项目文件夹
+
+如果用户想把普通“对话”框里的对话移动到某个项目文件夹，使用这个流程。
+
+### 已确认的实践结论
+
+- 线程可能已经在主 `~/.codex` 中，但 cwd 仍是 `Documents/Codex/<日期>/new-chat` 这种自动生成目录。
+- projectless 线程可能已经有 sqlite 和 session 文件记录，但还没有 `session_index.jsonl` 行。
+- 新版 sqlite 可能把普通“对话”框的线程标记为 `thread_source = "user"`。移动到真实项目工作区时，应归一化为 `NULL`；`subagent` 这类非 user 值不要清掉。
+- 这是同机 rebind，不是 alternate-home import，也不是 clone。
+- `rebind_threads.py` 可以在移动 cwd 的同时，用 sqlite title 创建缺失的 index 行。
+
+### 示例命令
+
+```bash
+python scripts/search_thread_index.py --home "~/.codex" --query "<title-or-generated-cwd>" --format json
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/project/path" --promote-to-sidebar
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/project/path" --promote-to-sidebar --execute
+python scripts/search_thread_index.py --home "~/.codex" --query "<thread-id>" --format json
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/project/path" --thread-id "<thread-id>"
+```
+
+如果标题很泛，比如“测试”，执行前要结合 `cwd` 和 `updated_at` 选中真正目标线程。如果成功 rebind 后侧栏仍不显示，先确认 sqlite `thread_source` 已经是 `NULL`。验证后先看项目侧栏；如果没有刷新，再重启 Codex。
 
 ## 同一个 `CODEX_HOME` 内的侧栏修复
 

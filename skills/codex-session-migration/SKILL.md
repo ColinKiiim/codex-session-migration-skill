@@ -1,6 +1,6 @@
 ---
 name: codex-session-migration
-description: Migrate, merge, copy, clone, repair, diagnose, or rebind Codex conversation history between CODEX_HOME directories and workspace paths across Windows, macOS, WSL, and Linux. Use when Codex threads need to be moved between hosts, restored from another .codex directory, imported or recovered from alternate local Codex homes such as Antigravity/Codex instance directories, merged into a desktop history, searched by id/title/cwd/index name, reclassified under a different cwd, recovered after workspace folder rename or path-prefix drift, recovered after disappearing from the sidebar or recent-thread window, diagnosed despite malformed or truncated session JSONL files, repaired through session_index.jsonl/state_5.sqlite synchronization, or verified across sessions, session_index.jsonl, and state_5.sqlite.
+description: Migrate, merge, copy, clone, repair, diagnose, or rebind Codex conversation history between CODEX_HOME directories and workspace paths across Windows, macOS, WSL, and Linux. Use when Codex threads need to be moved between hosts, restored from another .codex directory, imported or recovered from alternate local Codex homes such as Antigravity/Codex instance directories, moved from projectless/new-chat/dialog-box conversations into a real project workspace, merged into a desktop history, searched by id/title/cwd/index name, reclassified under a different cwd, recovered after workspace folder rename or path-prefix drift, recovered after disappearing from the sidebar or recent-thread window, diagnosed despite malformed or truncated session JSONL files, repaired through session_index.jsonl/state_5.sqlite synchronization, or verified across sessions, session_index.jsonl, and state_5.sqlite.
 ---
 
 # Codex Session Migration
@@ -108,6 +108,37 @@ python scripts/verify_thread_binding.py --home "~/.codex" --cwd "<workspace-cwd>
 If the main home already contains the same id, stop and decide whether the user wants to skip, replace, or clone under a new id. Do not overwrite by default.
 
 Do not use `rebind_threads.py` when the thread is not present in the main home. Do not use `bump_workspace_updated_at.py` when the main home has no matching thread; there is nothing in the main sidebar metadata to promote.
+
+## Projectless / New-Chat to Workspace Workflow
+
+Use this when the user asks to move a conversation from the generic "conversation" or "new chat" area into a real project folder, for example from a generated `Documents/Codex/<date>/new-chat` cwd into a project such as `Codex-Mac`.
+
+This is a same-home rebind. The thread already exists in the main `~/.codex`; only its workspace `cwd` and sidebar metadata need repair.
+
+Resolve the candidate thread by title, id, or generated cwd:
+
+```bash
+python scripts/search_thread_index.py --home "~/.codex" --query "<title-or-generated-cwd>" --format json
+```
+
+If multiple threads match a generic title such as `测试`, choose the exact thread by checking `cwd`, `updated_at`, and the user's target context. Projectless candidates commonly have cwd values like:
+
+```text
+/Users/<user>/Documents/Codex/<date>/new-chat
+/Users/<user>/Documents/Codex/<date>/<generated-thread-folder>
+```
+
+Dry-run and then execute the rebind:
+
+```bash
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "<project-folder-cwd>" --promote-to-sidebar
+python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "<project-folder-cwd>" --promote-to-sidebar --execute
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "<project-folder-cwd>" --thread-id "<thread-id>"
+```
+
+If the source thread is missing from `session_index.jsonl` but sqlite and the session file exist, `rebind_threads.py` can create the index row using the sqlite title as `thread_name`. Verify afterward that `session_index.exists`, `sqlite.exists`, and `session_file.exists` are all true.
+
+For projectless rows that have sqlite `thread_source = "user"`, `rebind_threads.py` normalizes that value to `NULL` during execution. This matters because observed project-thread rows use `NULL` while the generic conversation box can use `user`. Preserve non-user values such as `subagent`.
 
 ## Rebind-Only Workflow
 
@@ -250,9 +281,10 @@ When you use this skill in a conversation, do these things explicitly:
 14. If all three layers already contain the thread but the sidebar workspace group still says "no threads", consider recent-thread window behavior before concluding the data is gone.
 15. If raw session parsing fails because one or more JSONL files are malformed, use `search_thread_index.py` for metadata-only lookup and `diagnose_sessions.py` for the malformed-file list. Do not abandon unrelated repair work just because a different session file is truncated.
 16. For same-home rebind of known ids, prefer `rebind_threads.py` over hand-chaining `rewrite_cwd.py` and `sync_sqlite_threads.py`; it preserves sidebar names, updates sqlite, and can promote recency in one reviewed dry-run.
-17. For whole-folder renames or path-prefix drift, prefer `rebind_path_prefix.py` over manually collecting thread ids. Use dry-run first, include archived threads only when appropriate, and use `--require-target-exists` for same-machine path repairs.
-18. If a thread from a new Antigravity/Codex instance is missing from the main Codex sidebar, search both homes. If the main home has no match but the instance home does, treat it as an alternate-local-home `copy-selected` import into `~/.codex`, not as rebind or recency promotion.
-19. After metadata-only sidebar recovery or alternate-home import, tell the user to check the sidebar first. If the thread is still missing, then ask them to fully restart Codex.
+17. If the user asks to move a generic "conversation", "new chat", or `Documents/Codex/<date>/new-chat` thread into a project folder, treat it as same-home `rebind_threads.py`. Do not clone or copy unless the user explicitly wants two active copies.
+18. For whole-folder renames or path-prefix drift, prefer `rebind_path_prefix.py` over manually collecting thread ids. Use dry-run first, include archived threads only when appropriate, and use `--require-target-exists` for same-machine path repairs.
+19. If a thread from a new Antigravity/Codex instance is missing from the main Codex sidebar, search both homes. If the main home has no match but the instance home does, treat it as an alternate-local-home `copy-selected` import into `~/.codex`, not as rebind or recency promotion.
+20. After metadata-only sidebar recovery, projectless-to-workspace rebind, or alternate-home import, tell the user to check the sidebar first. If the thread is still missing, then ask them to fully restart Codex.
 
 When the user gives a thread title or fragment rather than a thread id, prefer:
 
@@ -352,6 +384,7 @@ Open only what is needed:
 - SQLite behavior: `references/sqlite-notes.md`
 - Sidebar recovery: `references/sidebar-recovery.md`
 - Alternate local homes: `references/alternate-local-home.md`
+- Projectless/new-chat rebind: `references/projectless-to-workspace.md`
 - Validation coverage: `references/test-matrix.md`
 
 ## Scripts

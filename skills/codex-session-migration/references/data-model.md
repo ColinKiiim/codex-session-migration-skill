@@ -9,6 +9,8 @@ This skill treats a Codex home as a directory that usually contains:
 
 One machine can have more than one local Codex home. For example, a main Codex Desktop home may live at `~/.codex`, while a newly opened Antigravity/Codex instance can write to `.antigravity_cockpit/instances/codex/<instance-id>`.
 
+Projectless or generic new-chat conversations can still live in the main home while their `cwd` points at a generated directory such as `Documents/Codex/<date>/new-chat`. These are not alternate-home imports; they are same-home rebinds into a real project cwd.
+
 For cross-device bundle transfer, this skill also uses a portable bundle zip that contains:
 
 - `manifest.json`
@@ -62,6 +64,9 @@ Important columns:
 - `title`
 - `archived`
 - `updated_at`
+- `updated_at_ms`, when present in newer schemas
+- `thread_source`, when present in newer schemas
+- `preview`, when present in newer schemas
 - `source`
 - `cli_version`
 - `first_user_message`
@@ -69,6 +74,8 @@ Important columns:
 Practical note:
 
 - `updated_at` in sqlite can affect whether a workspace still appears to have recent threads in the desktop sidebar.
+- newer schemas may also maintain `updated_at_ms` through triggers or explicit updates.
+- projectless conversations can have `thread_source = "user"`. When such a thread is moved into a real project workspace, normalize `thread_source` to `NULL` to match observed project-thread rows. Preserve non-user values such as `subagent`.
 - if sqlite and index both contain the thread but the workspace still looks empty, recency-window behavior is a plausible explanation.
 - same-home rebind repairs should update sqlite `cwd` together with session JSONL cwd fields.
 
@@ -86,6 +93,8 @@ If session files and index are copied but sqlite is not synchronized, the target
 Malformed or truncated session JSONL files are not necessarily evidence that every thread is unusable. Metadata-only operations can still use `session_index.jsonl` and sqlite rows to resolve unrelated thread ids, repair index drift, or report the bad file list for separate recovery.
 
 If the main home has no matching id, cwd, title, or raw session text, but an alternate local home contains the thread, treat it as cross-home copy-selected import. Same-home rebind and recency promotion only make sense after the target home already contains the thread.
+
+If sqlite and the session file contain a projectless thread but `session_index.jsonl` is missing the id, same-home rebind can still proceed. A repair tool may create the index row from the sqlite title and promote `updated_at` so the project sidebar can show it.
 
 ## Bundle Consequence
 

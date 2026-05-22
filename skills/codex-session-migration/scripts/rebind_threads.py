@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +31,8 @@ from codex_migration_lib import (
 
 UI_REFRESH_HINT = (
     "Check the Codex Desktop sidebar first. Recent Desktop builds may refresh visible threads "
-    "without a full restart. If the threads do not appear, fully restart Codex Desktop to force a reload."
+    "without a full restart. Projectless chats that are moved into a workspace may still require "
+    "a full Codex Desktop restart if the running app keeps the old in-memory thread list."
 )
 
 
@@ -79,6 +81,10 @@ def plan_threads(
                 "sqlite_title": sqlite_row.get("title"),
                 "session_index_thread_name": index_row.get("thread_name"),
                 "thread_name_preserved": bool(index_row.get("thread_name")),
+                "sqlite_thread_source": sqlite_row.get("thread_source"),
+                "after_thread_source": (
+                    None if sqlite_row.get("thread_source") == "user" else sqlite_row.get("thread_source")
+                ),
                 "archived": bool(sqlite_row.get("archived") or summary.get("archived")),
                 "before_updated_at": epoch_to_iso(before_updated_epoch) if before_updated_epoch else None,
                 "after_updated_at": epoch_to_iso(after_updated_epoch) if after_updated_epoch else None,
@@ -117,6 +123,42 @@ def build_sqlite_payload(item: dict[str, Any], *, promote_to_sidebar: bool) -> d
             "updated_at": item.get("after_updated_at") or (item.get("source_index_entry") or {}).get("updated_at"),
         },
     }
+
+
+def update_extended_sqlite_columns(home: Path, planned: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    db_path = home / "state_5.sqlite"
+    if not db_path.exists():
+        return []
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(threads)").fetchall()}
+        updates: list[dict[str, Any]] = []
+        for item in planned:
+            values: dict[str, Any] = {}
+            if "thread_source" in columns and item.get("sqlite_thread_source") == "user":
+                values["thread_source"] = None
+            if "updated_at_ms" in columns and item.get("after_updated_epoch"):
+                values["updated_at_ms"] = int(item["after_updated_epoch"]) * 1000
+            if not values:
+                continue
+            assignments = ", ".join(f"{column}=?" for column in values)
+            conn.execute(
+                f"UPDATE threads SET {assignments} WHERE id=?",
+                [*values.values(), item["id"]],
+            )
+            updates.append(
+                {
+                    "id": item["id"],
+                    "thread_source_before": item.get("sqlite_thread_source"),
+                    "thread_source_after": values.get("thread_source", item.get("sqlite_thread_source")),
+                    "updated_at_ms": values.get("updated_at_ms"),
+                }
+            )
+        conn.commit()
+        return updates
+    finally:
+        conn.close()
 
 
 def main() -> int:
@@ -164,6 +206,8 @@ def main() -> int:
                     "sqlite_title",
                     "session_index_thread_name",
                     "thread_name_preserved",
+                    "sqlite_thread_source",
+                    "after_thread_source",
                     "archived",
                     "before_updated_at",
                     "after_updated_at",
@@ -203,10 +247,12 @@ def main() -> int:
             [build_sqlite_payload(item, promote_to_sidebar=args.promote_to_sidebar) for item in planned],
             backup_dir / "sqlite_before",
         )
+        extended_updates = update_extended_sqlite_columns(home, planned)
         report["status"] = "ok"
         report["rewritten"] = rewritten
         report["sqlite_rows"] = sqlite_result.get("rows", [])
         report["sqlite_backup_files"] = sqlite_result.get("sqlite_backup_files", [])
+        report["sqlite_extended_updates"] = extended_updates
         write_json(backup_dir / "rebind_report.json", report)
 
     if args.report_path:
