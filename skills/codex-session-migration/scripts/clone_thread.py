@@ -43,7 +43,12 @@ def default_target_session_path(home: Path, thread_id: str) -> Path:
 
 def clone_session_file(source_path: Path, target_path: Path, source_thread_id: str, target_thread_id: str, target_cwd: str) -> dict[str, int]:
     items = read_jsonl(source_path)
-    counts = {"session_meta_id": 0, "session_meta_cwd": 0, "turn_context_cwd": 0}
+    counts = {
+        "session_meta_id": 0,
+        "session_meta_cwd": 0,
+        "session_meta_user_thread_source_removed": 0,
+        "turn_context_cwd": 0,
+    }
     for item in items:
         payload = item.get("payload")
         if not isinstance(payload, dict):
@@ -55,6 +60,9 @@ def clone_session_file(source_path: Path, target_path: Path, source_thread_id: s
             if payload.get("cwd") != target_cwd:
                 payload["cwd"] = target_cwd
                 counts["session_meta_cwd"] += 1
+            if payload.get("thread_source") == "user":
+                del payload["thread_source"]
+                counts["session_meta_user_thread_source_removed"] += 1
             item["payload"] = payload
         elif item.get("type") == "turn_context" and payload.get("cwd") != target_cwd:
             payload["cwd"] = target_cwd
@@ -212,6 +220,15 @@ def main() -> int:
                 "target_session_path": str(target_session_path),
                 "backup_dir": str(backup_dir),
                 "manifest": str(manifest_path),
+                "ui_confirmation_required_before_source_archive": True,
+                "archive_source_dry_run_command": (
+                    f'python scripts/archive_thread.py --home "{home}" '
+                    f'--thread-id "{args.source_thread_id}"'
+                ),
+                "archive_source_execute_command_after_ui_confirmation": (
+                    f'python scripts/archive_thread.py --home "{home}" '
+                    f'--thread-id "{args.source_thread_id}" --execute'
+                ),
             }
         )
     )

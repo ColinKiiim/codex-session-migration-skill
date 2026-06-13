@@ -248,6 +248,7 @@ def summarize_session_file(home: Path, session_path: Path) -> dict[str, Any]:
         "archived": is_archived_session(home, session_path),
         "cwd": cwd,
         "source": meta.get("source"),
+        "thread_source": meta.get("thread_source"),
         "cli_version": meta.get("cli_version"),
         "model_provider": meta.get("model_provider"),
         "session_meta_timestamp": meta.get("timestamp") or (timestamps[0] if timestamps else None),

@@ -21,10 +21,12 @@ from codex_migration_lib import (
     load_session_index,
     load_sqlite_threads,
     parse_iso_to_epoch,
+    read_jsonl,
     rewrite_session_cwd,
     summarize_session_file,
     upsert_threads_sqlite,
     write_json,
+    write_jsonl,
     write_session_index,
 )
 
@@ -82,8 +84,11 @@ def plan_threads(
                 "session_index_thread_name": index_row.get("thread_name"),
                 "thread_name_preserved": bool(index_row.get("thread_name")),
                 "sqlite_thread_source": sqlite_row.get("thread_source"),
+                "session_thread_source": summary.get("thread_source"),
                 "after_thread_source": (
-                    None if sqlite_row.get("thread_source") == "user" else sqlite_row.get("thread_source")
+                    None
+                    if (sqlite_row.get("thread_source") == "user" or summary.get("thread_source") == "user")
+                    else sqlite_row.get("thread_source")
                 ),
                 "archived": bool(sqlite_row.get("archived") or summary.get("archived")),
                 "before_updated_at": epoch_to_iso(before_updated_epoch) if before_updated_epoch else None,
@@ -161,6 +166,30 @@ def update_extended_sqlite_columns(home: Path, planned: list[dict[str, Any]]) ->
         conn.close()
 
 
+def normalize_session_thread_source(
+    session_path: Path,
+    sqlite_thread_source: Any,
+    session_thread_source: Any,
+) -> dict[str, Any]:
+    if sqlite_thread_source != "user" and session_thread_source != "user":
+        return {"changed": 0, "removed_thread_source": False}
+    items = read_jsonl(session_path)
+    changed = 0
+    for item in items:
+        if item.get("type") != "session_meta":
+            continue
+        payload = item.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("thread_source") == "user":
+            del payload["thread_source"]
+            item["payload"] = payload
+            changed += 1
+    if changed:
+        write_jsonl(session_path, items)
+    return {"changed": changed, "removed_thread_source": bool(changed)}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--home", required=True, help="Path to a CODEX_HOME directory")
@@ -207,6 +236,7 @@ def main() -> int:
                     "session_index_thread_name",
                     "thread_name_preserved",
                     "sqlite_thread_source",
+                    "session_thread_source",
                     "after_thread_source",
                     "archived",
                     "before_updated_at",
@@ -230,7 +260,19 @@ def main() -> int:
             session_path = Path(item["target_session_path"])
             backup_file(session_path, backup_dir / "session_backups", home)
             counts = rewrite_session_cwd(session_path, item["target_cwd"])
-            rewritten.append({"id": item["id"], "path": str(session_path), "counts": counts})
+            thread_source_result = normalize_session_thread_source(
+                session_path,
+                item.get("sqlite_thread_source"),
+                item.get("session_thread_source"),
+            )
+            rewritten.append(
+                {
+                    "id": item["id"],
+                    "path": str(session_path),
+                    "counts": counts,
+                    "thread_source_result": thread_source_result,
+                }
+            )
             row = current_index.get(
                 item["id"],
                 {"id": item["id"], "thread_name": item.get("session_index_thread_name") or item.get("sqlite_title") or item["id"]},

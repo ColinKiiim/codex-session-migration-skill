@@ -20,7 +20,8 @@ Use this matrix when validating the skill.
 - alternate local Codex home copy-selected import
 - replace-selected
 - rebind-only
-- projectless/new-chat same-home rebind into a project folder
+- verified projectless/new-chat move into a project folder by new-id clone, UI confirmation, then source archive
+- projectless/new-chat same-id disk rebind negative-boundary test
 - single-thread bundle export
 - single-thread bundle import
 - transfer-package handoff
@@ -82,8 +83,11 @@ Use this matrix when validating the skill.
 - malformed session files are reported as warnings with file paths and JSONL line numbers
 - direct rebind preserves `session_index.jsonl -> thread_name`
 - direct rebind updates JSONL cwd and sqlite cwd for every selected thread
-- projectless-to-workspace rebind creates a missing index row from sqlite title
-- projectless-to-workspace rebind verifies session file, session index, sqlite row, and target cwd
+- projectless-to-workspace disk rebind creates a missing index row from sqlite title
+- projectless-to-workspace disk rebind verifies session file, session index, sqlite row, and target cwd
+- projectless-to-workspace same-id rebind still leaves the tested thread under the generic "Conversations" section after restart
+- projectless-to-workspace new-id clone appears under the target project and is confirmed by the user before the source is archived
+- projectless-to-workspace source remains active when UI confirmation is absent
 - path-prefix rebind updates sqlite cwd, session metadata cwd, nested sandbox writable roots, and session_index recency
 - path-prefix rebind preserves malformed JSONL lines and still repairs parseable metadata
 - alternate-home import first proves the main home has no matching id before copy-selected

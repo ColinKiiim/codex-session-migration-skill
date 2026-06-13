@@ -2,7 +2,7 @@
 
 Chinese version below.
 
-Updated: 2026-05-22
+Updated: 2026-06-13
 
 ## English
 
@@ -53,10 +53,11 @@ Updated: 2026-05-22
 - dry-run repair tooling that reports and skips malformed session JSONL files instead of aborting
 - metadata-only thread search by cwd/sidebar name/title against sqlite and `session_index.jsonl` on macOS
 - direct same-home rebind dry-run for a known macOS thread id, including `thread_name` preservation and sidebar-promotion planning
-- macOS projectless `Documents/Codex/<date>/new-chat` thread -> real project folder rebind, including missing `session_index` creation from sqlite title and `thread_source = "user"` normalization to `NULL`
 - malformed-session diagnosis on a real macOS home with structured file paths and JSONL line numbers
 - macOS Antigravity/Codex instance home -> main `~/.codex` single-thread `copy-selected` import, with `verify_migration.py` and `verify_thread_binding.py` both ok
 - Codex Desktop may refresh repaired sidebar entries before a full restart; current docs now instruct operators to check the sidebar first
+- macOS generic Conversations thread -> real project group by cloning to a new thread id, verifying the clone, receiving user-visible sidebar confirmation, and then archiving the original
+- negative boundary: same-id projectless/new-chat rebind did not move the tested thread out of the generic Conversations section even after disk-layer alignment and a full restart
 
 ## Not Yet Verified
 
@@ -130,10 +131,11 @@ This repository intentionally avoids stronger claims than the evidence supports.
 - dry-run 修复脚本在遇到损坏 session JSONL 文件时会报告并跳过，而不是直接中断
 - macOS 上通过 sqlite 和 `session_index.jsonl` 进行基于 cwd、侧栏名、标题的元数据级线程搜索
 - 已知 macOS 线程 id 的同机直接重绑 dry-run，包括保留 `thread_name` 与规划侧栏提升
-- macOS 上将 projectless 的 `Documents/Codex/<日期>/new-chat` 线程重绑到真实项目文件夹，并用 sqlite title 补齐缺失的 `session_index`，同时把 `thread_source = "user"` 归一化为 `NULL`
 - 在真实 macOS home 上诊断损坏 session 文件，并结构化报告文件路径和 JSONL 行号
 - macOS 上 Antigravity/Codex 实例 home 到主 `~/.codex` 的单线程 `copy-selected` 导入，`verify_migration.py` 和 `verify_thread_binding.py` 均通过
 - Codex 桌面端可能在完整重启前就刷新出修复后的侧栏条目；当前文档已改为提示操作者先检查侧栏
+- macOS 上将普通“对话”移动到真实项目区：克隆成新线程 id，验证克隆，获得用户可见的侧栏确认，然后归档原对话
+- 负面边界：同 ID projectless/new-chat rebind 即使完成磁盘层对齐并完整重启，实测线程仍未离开普通“对话”区
 
 ## 尚未验证
 

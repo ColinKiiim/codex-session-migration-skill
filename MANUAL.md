@@ -147,7 +147,7 @@ This skill supports:
 
 - migration between different `CODEX_HOME` directories
 - alternate local Codex home import from Antigravity/Codex instance directories into the main `~/.codex`
-- projectless/new-chat conversation rebind into a real project folder
+- verified projectless/new-chat conversation move into a real project folder by cloning to a new id, confirming the Desktop UI, and then archiving the source
 - rebind-only fixes inside one existing `CODEX_HOME`
 - workspace-path repair after folder rename or move
 - batch path-prefix repair after a parent workspace folder rename or path drift
@@ -208,25 +208,37 @@ After verification, check the main Codex sidebar first. Fully restart Codex only
 
 Use this workflow when the user wants to move a normal conversation from the generic conversation box into a project folder.
 
-### Confirmed Practical Lessons
+### Verified Result
+
+On macOS Codex Desktop, a same-id rebind aligned session JSONL, `session_index.jsonl`, sqlite cwd, recency, and `thread_source`, but the thread still remained in the generic Conversations section after restart. Cloning that conversation under a new thread id with the target project cwd made the clone appear immediately under the target project. After the user confirmed the clone was visible, the original conversation was archived.
+
+The verified move sequence is:
+
+1. clone to a new id under the target project cwd
+2. verify the new clone in the session file, index, and sqlite
+3. ask the user to confirm that the clone is visible under the target project
+4. only after that UI confirmation, archive the original
+
+### Confirmed Lessons
 
 - The thread can already be in the main `~/.codex` while its cwd is still a generated folder under `Documents/Codex/<date>/new-chat`.
 - A projectless thread can have sqlite and session file records before it has a `session_index.jsonl` row.
-- Newer sqlite schemas can mark generic conversation-box rows with `thread_source = "user"`. When moving that row into a real project workspace, normalize it to `NULL`; keep non-user values such as `subagent`.
-- This is a same-home rebind, not alternate-home import and not clone.
-- `rebind_threads.py` can create the missing index row from the sqlite title while moving the cwd.
+- Newer schemas can mark generic conversation-box rows with `thread_source = "user"` in sqlite and session JSONL `session_meta.payload`. `clone_thread.py` removes the session-meta user marker and creates a normal project-thread row. Preserve non-user values such as `subagent`.
+- Same-id `rebind_threads.py` remains useful for disk repair and ordinary workspace-path correction, but it is not the verified way to move a generic Conversations thread into a project group.
+- Never archive the original before the user confirms the clone is visible.
 
 ### Example Commands
 
 ```bash
 python scripts/search_thread_index.py --home "~/.codex" --query "<title-or-generated-cwd>" --format json
-python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/project/path" --promote-to-sidebar
-python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/project/path" --promote-to-sidebar --execute
-python scripts/search_thread_index.py --home "~/.codex" --query "<thread-id>" --format json
-python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/project/path" --thread-id "<thread-id>"
+python scripts/clone_thread.py --home "~/.codex" --source-thread-id "<source-thread-id>" --target-cwd "/absolute/project/path" --title "<title>" --execute
+python scripts/search_thread_index.py --home "~/.codex" --query "<new-thread-id>" --format json
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/project/path" --thread-id "<new-thread-id>"
+python scripts/archive_thread.py --home "~/.codex" --thread-id "<source-thread-id>"
+python scripts/archive_thread.py --home "~/.codex" --thread-id "<source-thread-id>" --execute
 ```
 
-If the title is generic, for example `test`, choose the intended thread by `cwd` and `updated_at` before executing. If the sidebar still does not show the thread after a successful rebind, check that sqlite `thread_source` is now `NULL`. After verification, check the project in the sidebar first; restart Codex only if needed.
+If the title is generic, for example `test`, choose the intended source by `cwd` and `updated_at` before executing. Run the archive commands only after the user explicitly confirms that the clone is visible under the target project. If it is not visible, keep the source active and continue diagnosis.
 
 ## Sidebar Repair Inside One Existing `CODEX_HOME`
 
@@ -367,7 +379,7 @@ skill 路径：
 
 - 不同 `CODEX_HOME` 目录之间的迁移
 - 从 Antigravity/Codex 实例目录等本机 alternate Codex home 导入线程到主 `~/.codex`
-- 将 projectless/new-chat 普通对话重绑到真实项目文件夹
+- 通过“克隆成新 ID、确认 Desktop 侧栏、再归档源线程”的已验证流程，将 projectless/new-chat 普通对话移动到真实项目文件夹
 - 同一个 `CODEX_HOME` 内的只重绑修复
 - 工作区文件夹改名或移动后的路径修复
 - 父级工作区目录改名或路径漂移后的批量前缀修复
@@ -428,25 +440,37 @@ python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/works
 
 如果用户想把普通“对话”框里的对话移动到某个项目文件夹，使用这个流程。
 
-### 已确认的实践结论
+### 已验证结果
+
+在 macOS Codex Desktop 实测中，同 ID rebind 已经对齐 session JSONL、`session_index.jsonl`、sqlite cwd、更新时间和 `thread_source`，但重启后线程仍留在普通“对话”区。把同一对话使用目标项目 cwd 克隆成新线程 id 后，克隆立即出现在目标项目下；用户确认可见后，再归档原对话，完成移动。
+
+已验证的移动顺序是：
+
+1. 使用目标项目 cwd 克隆成新 id
+2. 在 session 文件、index 和 sqlite 三层验证新克隆
+3. 请用户确认克隆已显示在目标项目下
+4. 只有获得 UI 确认后，才归档原对话
+
+### 已确认结论
 
 - 线程可能已经在主 `~/.codex` 中，但 cwd 仍是 `Documents/Codex/<日期>/new-chat` 这种自动生成目录。
 - projectless 线程可能已经有 sqlite 和 session 文件记录，但还没有 `session_index.jsonl` 行。
-- 新版 sqlite 可能把普通“对话”框的线程标记为 `thread_source = "user"`。移动到真实项目工作区时，应归一化为 `NULL`；`subagent` 这类非 user 值不要清掉。
-- 这是同机 rebind，不是 alternate-home import，也不是 clone。
-- `rebind_threads.py` 可以在移动 cwd 的同时，用 sqlite title 创建缺失的 index 行。
+- 新版结构可能在 sqlite 和 session JSONL `session_meta.payload` 中把普通“对话”框的线程标记为 `thread_source = "user"`。`clone_thread.py` 会移除克隆 session-meta 中的 user 标记，并创建普通项目线程形态；`subagent` 这类非 user 值不要清掉。
+- 同 ID `rebind_threads.py` 仍适合磁盘修复和普通工作区路径纠正，但不是把普通“对话”移动进项目区的已验证方式。
+- 用户确认克隆可见前，绝不能归档原对话。
 
 ### 示例命令
 
 ```bash
 python scripts/search_thread_index.py --home "~/.codex" --query "<title-or-generated-cwd>" --format json
-python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/project/path" --promote-to-sidebar
-python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "/absolute/project/path" --promote-to-sidebar --execute
-python scripts/search_thread_index.py --home "~/.codex" --query "<thread-id>" --format json
-python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/project/path" --thread-id "<thread-id>"
+python scripts/clone_thread.py --home "~/.codex" --source-thread-id "<source-thread-id>" --target-cwd "/absolute/project/path" --title "<title>" --execute
+python scripts/search_thread_index.py --home "~/.codex" --query "<new-thread-id>" --format json
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "/absolute/project/path" --thread-id "<new-thread-id>"
+python scripts/archive_thread.py --home "~/.codex" --thread-id "<source-thread-id>"
+python scripts/archive_thread.py --home "~/.codex" --thread-id "<source-thread-id>" --execute
 ```
 
-如果标题很泛，比如“测试”，执行前要结合 `cwd` 和 `updated_at` 选中真正目标线程。如果成功 rebind 后侧栏仍不显示，先确认 sqlite `thread_source` 已经是 `NULL`。验证后先看项目侧栏；如果没有刷新，再重启 Codex。
+如果标题很泛，比如“测试”，执行前要结合 `cwd` 和 `updated_at` 选中真正的源线程。只有用户明确确认克隆已经显示在目标项目下，才能执行归档命令；如果看不到，就保留源线程并继续排查。
 
 ## 同一个 `CODEX_HOME` 内的侧栏修复
 

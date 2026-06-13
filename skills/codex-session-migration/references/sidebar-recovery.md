@@ -6,7 +6,7 @@ Use this note when Codex threads appear to be "missing" from the left sidebar ev
 
 Before choosing a same-home sidebar repair, prove the main home actually contains the thread. If `~/.codex` has no match by id, cwd, title, or raw session text, but an alternate local instance home contains the thread, switch to `references/alternate-local-home.md`.
 
-If the main home contains the thread but its cwd is a generated `Documents/Codex/<date>/new-chat` path, switch to `references/projectless-to-workspace.md`.
+If the main home contains the thread but its cwd is a generated `Documents/Codex/<date>/new-chat` path, switch to `references/projectless-to-workspace.md`. The verified move uses a new-id clone, user-visible confirmation, and then source archiving.
 
 ### 1. `session_index.jsonl` drift
 
@@ -85,13 +85,14 @@ Observed repair case:
 
 - after metadata repair or rebind, migrated threads appeared in Codex Desktop before a full restart
 - the repair conversation was still running while the sidebar refreshed
-- in a projectless-to-workspace repair, the first cwd/index/sqlite update did not surface the thread until the sqlite `thread_source` value was normalized from `user` to `NULL`
+- in a projectless-to-workspace attempt, cwd/index/sqlite updates plus `thread_source` normalization still did not move the observed thread out of the generic "对话" section after a full restart
+- cloning that projectless conversation under a new id with the target project cwd made it appear immediately in the target project
 
 Practical consequence:
 
 - do not state that every metadata repair always requires an immediate restart
 - check the sidebar first, then fully restart Codex only if the repaired thread still does not appear
-- if a moved projectless conversation still does not appear, verify `thread_source` before treating it as a pure live-refresh problem
+- do not treat projectless-to-workspace disk metadata alignment as sufficient evidence of UI recovery; require a visible clone before archiving the source
 
 ## Recommended Repair Order
 

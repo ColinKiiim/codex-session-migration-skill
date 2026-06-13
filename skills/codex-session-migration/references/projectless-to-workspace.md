@@ -1,23 +1,23 @@
-# Projectless To Workspace Rebind
+# Projectless To Workspace Move
 
-Use this note when the user wants to move a conversation from the generic "conversation" or "new chat" area into a project folder.
+Use this note when the user wants to move a conversation from the generic "Conversations" or "new chat" area into a project folder.
 
-## Confirmed Failure Mode
+## Verified Result
 
-Observed repair case:
+Verified on macOS Codex Desktop:
 
-- the target thread existed in the main `~/.codex`
-- sqlite had a valid row and session file path
-- the thread cwd pointed at a generated projectless folder such as `Documents/Codex/<date>/new-chat`
-- `session_index.jsonl` did not contain the thread yet
-- after rebind, `rebind_threads.py` created the missing index row using the sqlite title as `thread_name`
-- projectless rows may carry sqlite `thread_source = "user"`; when moving them into a project workspace, `rebind_threads.py` clears that value to `NULL` so Desktop can treat the row like other project threads
+- keeping the original thread id and rebinding its cwd did not move the thread out of the generic "对话" sidebar section, even after the three disk layers agreed and Codex Desktop was restarted
+- cloning the same conversation under a new thread id with the target project cwd made the cloned thread appear immediately under the target project
+- after the user confirmed the clone was visible, archiving the original thread completed the move while keeping the old thread recoverable
 
-Practical consequence:
+The verified move workflow is:
 
-- this is not alternate-home import
-- this is not a clone/copy request unless the user explicitly wants a second active copy
-- this is a same-home workspace rebind from generated cwd to the real project cwd
+1. clone to a new id under the target project cwd
+2. verify the new clone in the three disk layers
+3. ask the user to confirm that the clone is visible under the target project
+4. only after that UI confirmation, archive the original thread
+
+Do not call a same-id rebind a successful move from the generic Conversations section into a project. It is still useful as a disk-metadata repair, but it does not change the observed Desktop grouping identity.
 
 ## Recognition Cues
 
@@ -32,15 +32,13 @@ Trigger this workflow when the user says things like:
 ## Recommended Order
 
 1. Search the main home by title, id, or generated cwd.
-2. If the title is generic, use `cwd`, `updated_at`, and target context to choose the intended thread.
+2. If the title is generic, use `cwd`, `updated_at`, and target context to choose the intended source thread.
 3. Confirm the target project folder exists.
-4. Dry-run `rebind_threads.py`.
-5. Confirm `before_cwd` is the generated/projectless cwd and `after_cwd` is the real project cwd.
-6. Execute `rebind_threads.py --execute`.
-7. Verify by id with `search_thread_index.py`.
-8. Verify binding with `verify_thread_binding.py`.
-9. If the sidebar still does not show the thread, inspect sqlite `thread_source`; for moved projectless conversations it should be `NULL`, not `user`.
-10. Check the Codex sidebar first; fully restart Codex only if it does not refresh.
+4. Clone the source thread to the target cwd with a new id. Use the original title unless the user requests a different title.
+5. Verify the clone by its new id with `search_thread_index.py` and `verify_thread_binding.py`.
+6. Ask the user to confirm that the clone is visible under the target project in Codex Desktop.
+7. If the user confirms visibility, dry-run and execute `archive_thread.py` for the original source thread.
+8. If the clone is not visible, do not archive the source. Continue diagnosis.
 
 ## Commands
 
@@ -50,25 +48,43 @@ Find candidates:
 python scripts/search_thread_index.py --home "~/.codex" --query "<title-or-generated-cwd>" --format json
 ```
 
-Dry-run and execute:
+Clone into the project:
 
 ```bash
-python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "<project-folder-cwd>" --promote-to-sidebar
-python scripts/rebind_threads.py --home "~/.codex" --thread-id "<thread-id>" --target-cwd "<project-folder-cwd>" --promote-to-sidebar --execute
+python scripts/clone_thread.py --home "~/.codex" --source-thread-id "<source-thread-id>" --target-cwd "<project-folder-cwd>" --title "<original-or-requested-title>" --execute
 ```
 
-Verify:
+Verify the new clone:
 
 ```bash
-python scripts/search_thread_index.py --home "~/.codex" --query "<thread-id>" --format json
-python scripts/verify_thread_binding.py --home "~/.codex" --cwd "<project-folder-cwd>" --thread-id "<thread-id>"
+python scripts/search_thread_index.py --home "~/.codex" --query "<new-thread-id>" --format json
+python scripts/verify_thread_binding.py --home "~/.codex" --cwd "<project-folder-cwd>" --thread-id "<new-thread-id>"
 ```
+
+After the user confirms the clone is visible:
+
+```bash
+python scripts/archive_thread.py --home "~/.codex" --thread-id "<source-thread-id>"
+python scripts/archive_thread.py --home "~/.codex" --thread-id "<source-thread-id>" --execute
+```
+
+## Why Clone Instead Of Rebind
+
+Observed comparison:
+
+- project thread `测试-ami` cloned from Apple Music Import to `Codex-Mac` appeared immediately
+- generic Conversations thread `测试` kept its original id after cwd rebind and remained in the generic section
+- cloning that generic thread to a new id as `测试-dialog-clone` made it appear immediately under `Codex-Mac`
+
+This comparison indicates that Desktop grouping for generic conversations is tied to thread identity or creation-time state that is not changed by rewriting the known disk metadata layers.
+
+`clone_thread.py` removes `session_meta.payload.thread_source = "user"` from the cloned session when present. The new sqlite row is created as a normal project-thread row.
 
 ## Safety Rules
 
-- Do not use `copy-selected` for a thread already present in the main home unless the user explicitly wants a duplicate.
-- Do not use `clone_thread.py` unless the user wants two active copies.
-- If `session_index` is missing but sqlite and the session file exist, continue with dry-run; `rebind_threads.py` can create the missing index row.
-- For sqlite schemas with a `thread_source` column, do not leave moved projectless conversations as `thread_source = "user"`. Project workspace rows observed in Desktop use `NULL`; `subagent` should still be preserved.
-- If the target project path is ambiguous, resolve it before writing.
-- Preserve or derive a sidebar name from `session_index.thread_name`, sqlite title, or the thread id in that order.
+- Never archive the original before the user confirms the clone is visible in the target project.
+- Preserve the original thread until clone verification and UI confirmation both pass.
+- Use a new thread id; do not overwrite the source id.
+- Prefer the original sidebar title unless the user requests a renamed clone.
+- Treat unrelated malformed JSONL warnings as separate issues when the selected source and clone verify successfully.
+- Same-id `rebind_threads.py` remains appropriate for ordinary workspace path correction, but not for moving a generic Conversations thread into a project sidebar group.

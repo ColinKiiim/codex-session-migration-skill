@@ -12,7 +12,7 @@ It supports more than moving threads across different `CODEX_HOME` directories. 
 
 - rebinding threads to a new workspace path inside the same `CODEX_HOME`
 - importing threads from alternate local Codex homes such as Antigravity/Codex instance directories into the main `~/.codex`
-- moving projectless/new-chat conversations into real project folders inside the same `CODEX_HOME`
+- moving projectless/new-chat conversations into real project folders with the verified new-id clone, UI-confirmation, then source-archive workflow
 - repairing threads that disappear after a workspace folder is renamed or moved
 - batch-repairing stale workspace path prefixes after parent-folder rename/path drift
 - repairing sidebar invisibility caused by `session_index.jsonl` drift
@@ -73,7 +73,7 @@ If the main sidebar cannot find a new instance conversation and the main `~/.cod
 
 ## Projectless Conversations
 
-New generic conversations can be stored in the main `~/.codex` with cwd values under `~/Documents/Codex/<date>/new-chat` or another generated folder. To move one of these conversations into a real project folder, use same-home `rebind_threads.py` with `--promote-to-sidebar`. If `session_index.jsonl` is missing the id but sqlite and the session file exist, the rebind can create the index row using the sqlite title. Newer sqlite schemas may mark projectless conversations with `thread_source = "user"`; the rebind normalizes that value to `NULL` when moving the conversation into a project workspace.
+New generic conversations can be stored in the main `~/.codex` with cwd values under `~/Documents/Codex/<date>/new-chat` or another generated folder. A same-id `rebind_threads.py` repair can align the known disk metadata layers, but a verified macOS test still left that thread in Codex Desktop's generic "Conversations" section after restart. The verified move is to clone the conversation under a new thread id with the target project cwd, verify the clone, ask the user to confirm that it is visible under the project, and only then archive the original. Never archive the source before that UI confirmation.
 
 ## Sidebar Recovery
 
@@ -103,7 +103,7 @@ The practical repair boundary is:
 
 - 在同一个 `CODEX_HOME` 中，把线程重绑到新的工作目录
 - 从 Antigravity/Codex 实例目录等本机 alternate Codex home 导入线程到主 `~/.codex`
-- 把 projectless/new-chat 的普通“对话”移动到真实项目文件夹
+- 通过已验证的“新 ID 克隆、用户确认侧栏、再归档源对话”流程，把 projectless/new-chat 普通“对话”移动到真实项目文件夹
 - 在工作区文件夹改名或移动后，修复“消失”的线程
 - 在父目录改名或路径漂移后，批量修复仍指向旧前缀的工作区线程
 - 修复由 `session_index.jsonl` 漂移导致的侧栏线程不可见
@@ -163,7 +163,7 @@ The practical repair boundary is:
 
 ## Projectless 普通对话
 
-新建的普通“对话”可能已经在主 `~/.codex` 里，但 cwd 指向 `~/Documents/Codex/<日期>/new-chat` 或其他自动生成目录。要把这种对话移动到真实项目文件夹，使用同机 `rebind_threads.py --promote-to-sidebar`。如果 `session_index.jsonl` 暂时没有这个 id，但 sqlite 和 session 文件存在，rebind 可以用 sqlite title 创建 index 行。新版 sqlite 可能会给普通“对话”写入 `thread_source = "user"`；移动到项目工作区时，rebind 会把它归一化为 `NULL`。
+新建的普通“对话”可能已经在主 `~/.codex` 里，但 cwd 指向 `~/Documents/Codex/<日期>/new-chat` 或其他自动生成目录。同 ID 的 `rebind_threads.py` 虽然可以对齐已知磁盘元数据，但 macOS 实测在重启后仍留在左侧普通“对话”区。已经验证可行的移动方式是：使用目标项目 cwd 克隆成新线程 id，验证克隆，等待用户确认它出现在项目区，然后才归档原对话。没有获得用户可见确认前，绝不能归档源线程。
 
 ## 侧栏恢复
 
